@@ -553,6 +553,34 @@
     }
     @keyframes toastIn { from { opacity: 0; transform: translateX(-50%) translateY(10px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
     @keyframes toastOut { from { opacity: 1; } to { opacity: 0; } }
+
+    /* ── Monthly Reminder Banner ── */
+    .reminder-banner {
+      display: none;
+      align-items: center; gap: 12px;
+      padding: 12px 16px;
+      background: rgba(234,179,8,0.08);
+      border-bottom: 1px solid rgba(234,179,8,0.25);
+      animation: fadeIn 0.3s ease;
+    }
+    .reminder-banner.show { display: flex; }
+    .reminder-icon {
+      width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
+      background: #eab308; color: #000;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .reminder-icon svg { width: 20px; height: 20px; }
+    .reminder-text { flex: 1; min-width: 0; }
+    .reminder-title { font-size: 14px; font-weight: 600; color: var(--yellow); }
+    .reminder-desc { font-size: 12px; color: var(--text-sec); margin-top: 2px; }
+    .reminder-actions { display: flex; gap: 6px; flex-shrink: 0; }
+    .reminder-close {
+      width: 28px; height: 28px; border-radius: 6px; border: none;
+      background: transparent; color: var(--text-muted); cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; font-family: var(--font); padding: 0;
+    }
+    .reminder-close:hover { background: rgba(255,255,255,0.06); color: var(--text); }
   </style>
 </head>
 <body>
@@ -581,6 +609,21 @@
       </div>
     </div>
   </header>
+
+  <!-- ── Monthly Reminder Banner ── -->
+  <div class="reminder-banner" id="reminderBanner">
+    <div class="reminder-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+    </div>
+    <div class="reminder-text">
+      <div class="reminder-title">Выберите категории</div>
+      <div class="reminder-desc" id="reminderDesc">Новый месяц — не забудьте выбрать категории кэшбэка!</div>
+    </div>
+    <div class="reminder-actions">
+      <button class="btn btn-primary" onclick="goSelectCategories()" style="min-height:36px;padding:6px 14px;font-size:13px">Выбрать</button>
+      <button class="reminder-close" onclick="dismissReminder()" title="Не напоминать">×</button>
+    </div>
+  </div>
 
   <!-- ── Main ── -->
   <main class="main" id="app"></main>
@@ -864,11 +907,13 @@ window.addEventListener('beforeinstallprompt', (e) => {
   e.preventDefault();
   deferredInstallPrompt = e;
   updateInstallBtn();
+  checkMonthlyReminder();
 });
 
 window.addEventListener('appinstalled', () => {
   deferredInstallPrompt = null;
   updateInstallBtn();
+  checkMonthlyReminder();
   showToast('Приложение добавлено на главный экран');
 });
 
@@ -886,6 +931,7 @@ function installPwa() {
   deferredInstallPrompt.userChoice.then((result) => {
     if (result.outcome === 'accepted') deferredInstallPrompt = null;
     updateInstallBtn();
+  checkMonthlyReminder();
   });
 }
 
@@ -2384,6 +2430,67 @@ function clearBadge() {
   if (navigator.clearAppBadge) navigator.clearAppBadge().catch(() => {});
 }
 
+// ─── Monthly Reminder ──────────────────────────────────────────────────────────
+const REMINDER_DISMISSED_KEY = 'cashback-beta-reminder-dismissed';
+
+function checkMonthlyReminder() {
+  if (banks.length === 0) return;
+  const now = new Date();
+  const dayOfMonth = now.getDate();
+  // Show reminder 1st-5th of month if user hasn't dismissed it
+  if (dayOfMonth > 5) return;
+  const dismissed = localStorage.getItem(REMINDER_DISMISSED_KEY);
+  if (dismissed === getCurrentMonth()) return;
+  // Check if any bank has no selections for current month
+  const emptyBanks = banks.filter(b => {
+    return b.month === getCurrentMonth() && b.selectedCategories.length === 0;
+  });
+  if (emptyBanks.length === 0) return;
+  // Build description
+  const names = emptyBanks.map(b => b.coinData.provider.name);
+  const descEl = document.getElementById('reminderDesc');
+  if (names.length === 1) {
+    descEl.textContent = '«' + names[0] + '» — категории не выбраны';
+  } else if (names.length <= 3) {
+    descEl.textContent = names.join(', ') + ' — категории не выбраны';
+  } else {
+    descEl.textContent = names.slice(0, 2).join(', ') + ' и ещё ' + (names.length - 2) + ' — категории не выбраны';
+  }
+  document.getElementById('reminderBanner').classList.add('show');
+  // Try browser notification
+  tryBrowserNotification(names);
+}
+
+function tryBrowserNotification(bankNames) {
+  if (!('Notification' in window)) return;
+  if (Notification.permission === 'granted') {
+    new Notification('Кэшбэк Ассистент', {
+      body: bankNames.join(', ') + ' — выберите категории!',
+      icon: './icon-192.png',
+      tag: 'cashback-monthly-reminder'
+    });
+  } else if (Notification.permission === 'default') {
+    // Ask once, don't be annoying
+    Notification.requestPermission();
+  }
+}
+
+function goSelectCategories() {
+  document.getElementById('reminderBanner').classList.remove('show');
+  // Find first bank without selections and expand it
+  const emptyBank = banks.find(b => b.month === getCurrentMonth() && b.selectedCategories.length === 0);
+  if (emptyBank) {
+    expandedBankId = emptyBank.id;
+  }
+  switchToTab('banks');
+  render();
+}
+
+function dismissReminder() {
+  localStorage.setItem(REMINDER_DISMISSED_KEY, getCurrentMonth());
+  document.getElementById('reminderBanner').classList.remove('show');
+}
+
 // ─── Init ───────────────────────────────────────────────────────────────────────
 (function init() {
   initTheme();
@@ -2407,6 +2514,7 @@ function clearBadge() {
   render();
   updateBadge();
   updateInstallBtn();
+  checkMonthlyReminder();
 })();
 </script>
 </body>
