@@ -147,11 +147,11 @@
     .sel-empty p { font-size: 14px; color: var(--text-muted); line-height: 1.6; }
 
     /* ── Bank Cards Grid ── */
-    .bank-grid { display: grid; gap: 14px; grid-template-columns: 1fr; }
+    .bank-grid { display: grid; gap: 0; grid-template-columns: 1fr; }
     .bank-card {
       background: var(--bg-card); border: 2px solid var(--border);
       border-radius: var(--radius); overflow: hidden;
-      transition: all 0.2s ease;
+      transition: all 0.2s ease; margin-bottom: 14px;
     }
     .bank-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.2); }
     .bank-card.empty-alert { border-color: color-mix(in srgb, #eab308 50%, var(--border)); }
@@ -161,8 +161,8 @@
     .bc-header { padding: 14px 16px; }
     .bc-table { width: 100%; border-collapse: collapse; }
     .bc-table td.bc-cell-reorder { width: 28px; text-align: center; vertical-align: top; padding: 0 0 0 0; }
-    .bc-table td.bc-cell-icon { width: 40px; vertical-align: top; padding: 0 0 0 0; }
-    .bc-table td.bc-cell-text { padding: 0 12px 0 0; vertical-align: top; }
+    .bc-table td.bc-cell-icon { width: 40px; vertical-align: top; padding: 4px 0 0 0; }
+    .bc-table td.bc-cell-text { padding: 0 12px 0 8px; vertical-align: top; }
     .bc-table td.bc-cell-actions { width: auto; padding: 0 0 0 8px; text-align: right; vertical-align: top; white-space: nowrap; }
     .bc-text { min-width: 0; }
     .bc-name { font-size: 16px; font-weight: 600; }
@@ -1055,9 +1055,16 @@
               <li><strong>Доп. %</strong> — добавить бонусный % к существующей категории банка (показывается как «доп. +X%»)</li>
             </ul>
 
+            <h4>Рамки карточек банков</h4>
+            <ul>
+              <li><span style="display:inline-block;width:12px;height:12px;border:2px solid color-mix(in srgb, #eab308 50%, var(--border));border-radius:2px;vertical-align:middle;margin-right:4px"></span> <strong>Жёлто-золотая рамка</strong> — категории не выбраны. Нажмите «Выбрать» и отметьте нужные.</li>
+              <li><span style="display:inline-block;width:12px;height:12px;border:2px solid color-mix(in srgb, var(--green) 40%, transparent);border-radius:2px;vertical-align:middle;margin-right:4px"></span> <strong>Цветная рамка</strong> — есть выбранные категории.</li>
+              <li><span style="display:inline-block;width:12px;height:12px;border:2px solid var(--green);border-radius:2px;vertical-align:middle;margin-right:4px"></span> <strong>Яркая рамка</strong> — список категорий раскрыт.</li>
+            </ul>
+
             <h4>Кнопки в карточке банка</h4>
             <ul>
-              <li><span style="display:inline-flex;align-items:center;vertical-align:middle;width:14px;height:14px;color:var(--green)"><svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></span> <strong>Рекомендации</strong> — алгоритм автоматически выбирает категории с максимальным %, учитывая <strong>все</strong> ваши банки. Одинаковые категории (АЗС / Топливо) не дублируются.</li>
+              <li><span style="display:inline-flex;align-items:center;vertical-align:middle;width:14px;height:14px;color:#eab308"><svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></span> <strong>Рекомендации</strong> — алгоритм автоматически выбирает категории с максимальным %, учитывая <strong>все</strong> ваши банки. Рекомендуемые категории выделены жёлтой полоской слева и жёлтой молнией.</li>
               <li><span style="display:inline-flex;align-items:center;vertical-align:middle;width:14px;height:14px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg></span> <strong>Прошлый</strong> — скопировать выбор с прошлого месяца</li>
               <li><span style="display:inline-flex;align-items:center;vertical-align:middle;width:14px;height:14px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg></span> <strong>Месяц</strong> — перейти к следующему месяцу (очищает выбор)</li>
               <li><span style="display:inline-flex;align-items:center;vertical-align:middle;width:14px;height:14px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-left:-6px"><polyline points="6 9 12 15 18 9"/></svg></span> <strong>↑ ↓</strong> — переместить банк выше/ниже в списке</li>
