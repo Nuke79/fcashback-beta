@@ -159,7 +159,7 @@
     .bank-card.selected { border-color: color-mix(in srgb, var(--bank-color, var(--green)) 40%, transparent); }
     .bank-card.expanded { border-color: var(--bank-color, var(--green)); box-shadow: 0 0 20px color-mix(in srgb, var(--bank-color, var(--green)) 15%, transparent); }
     .bc-header { padding: 14px 16px; }
-    .bc-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+    .bc-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
     .bc-info { min-width: 0; flex: 1; display: flex; align-items: flex-start; gap: 12px; }
     .bc-text { min-width: 0; flex: 1; }
     .bc-name { font-size: 16px; font-weight: 600; line-height: 26px; }
@@ -174,6 +174,7 @@
     .bc-desc { font-size: 12px; color: var(--text-muted); margin-top: 6px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
     .bc-count { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
     .bc-actions { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+    .bc-footer { display: flex; justify-content: flex-end; padding: 0 16px 8px; }
     .bc-reorder { display: flex; flex-direction: column; gap: 1px; align-self: center; margin-right: 6px; flex-shrink: 0; }
     .bc-reorder-btn {
       width: 20px; height: 18px; border: none; background: transparent;
@@ -1896,15 +1897,13 @@ function renderBanks(app) {
       html += '<div class="bc-desc">' + escHtml(bank.coinData.provider.notes) + '</div>';
     }
     html += '</div></div><div class="bc-actions">';
-    html += '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">';
-    html += '<div style="display:flex;align-items:center;gap:4px">';
     html += '<button class="btn' + (isExp ? ' btn-primary' : ' btn-outline') + ' btn-sm" onclick="toggleExpand(\'' + bank.id + '\')" style="gap:5px;min-height:36px;padding:6px 12px;font-size:13px"><span style="width:16px;height:16px">' + (isExp ? ICONS.chevUp : ICONS.chevDown) + '</span>' + (isExp ? 'Свернуть' : 'Выбрать') + '</button>';
     html += '<button class="btn btn-sm btn-danger btn-icon" onclick="deleteBank(\'' + bank.id + '\')" title="Удалить" style="min-height:36px"><span style="width:16px;height:16px">' + ICONS.trash + '</span></button>';
-    html += '</div>';
+    html += '</div></div>';
     if (selCount > 0) {
-      html += '<span class="badge" style="background:' + bc.color + '">' + selCount + '/' + (bankMax > 0 ? bankMax : '∞') + '</span>';
+      html += '<div class="bc-footer"><span class="badge" style="background:' + bc.color + '">' + selCount + '/' + (bankMax > 0 ? bankMax : '∞') + '</span></div>';
     }
-    html += '</div></div></div>';
+    html += '</div>';
 
     if (isExp) {
       const rec = getRecommendation()[bank.id] || new Set();
