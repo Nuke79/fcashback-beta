@@ -481,6 +481,15 @@
   </div>
 
 <script>
+// ─── Changelog (declared early — used by easter egg & SW handler) ─────────────────
+const CHANGELOG_KEY = 'cashback-beta-changelog-seen';
+const CHANGELOG = {
+  '2025.04.27-r2': [
+    'Описание карты теперь отображается на всю ширину внизу карточки банка',
+    'Внешний вид приложения стал более аккуратным',
+  ]
+};
+
 // ─── Easter Egg: tap title 7 times to show version ─────────────────────────────────
 let _tapCount = 0, _tapTimer = null;
 function easterEggTap() {
@@ -555,15 +564,7 @@ function updateInstallBtn() {
   }
 }
 
-// ─── Changelog ──────────────────────────────────────────────────────────────────
-const CHANGELOG_KEY = 'cashback-beta-changelog-seen';
-const CHANGELOG = {
-  '2025.04.27-r2': [
-    'Описание карты теперь отображается на всю ширину внизу карточки банка',
-    'Внешний вид приложения стал более аккуратным',
-  ]
-};
-
+// ─── Changelog Modal ───────────────────────────────────────────────────────────────
 function openChangelogModal(version) {
   const changes = CHANGELOG[version];
   if (!changes || changes.length === 0) return;
