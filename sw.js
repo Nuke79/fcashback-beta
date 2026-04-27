@@ -1,5 +1,5 @@
 const CACHE_NAME = 'cashback-beta-2025.04.27';
-const ASSETS = ['./index.html', './manifest.json', './icon-192.png'];
+const ASSETS = ['./index.html', './style.css', './manifest.json', './icon-192.png'];
 
 // Install: cache all assets
 self.addEventListener('install', (e) => {
