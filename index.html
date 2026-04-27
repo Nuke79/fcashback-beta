@@ -165,6 +165,16 @@
     .bc-desc { font-size: 12px; color: var(--text-muted); margin-top: 6px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
     .bc-count { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
     .bc-actions { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+    .bc-reorder { display: flex; flex-direction: column; gap: 1px; margin-right: 2px; }
+    .bc-reorder-btn {
+      width: 20px; height: 18px; border: none; background: transparent;
+      color: var(--text-muted); cursor: pointer; display: flex;
+      align-items: center; justify-content: center; padding: 0;
+      border-radius: 4px; transition: all 0.15s; font-family: var(--font);
+    }
+    .bc-reorder-btn:hover { background: rgba(255,255,255,0.1); color: var(--text); }
+    .bc-reorder-btn:disabled { opacity: 0.15; cursor: not-allowed; }
+    .bc-reorder-btn svg { width: 14px; height: 14px; }
     .badge {
       display: inline-flex; align-items: center; gap: 4px;
       padding: 3px 8px; border-radius: 6px;
@@ -581,9 +591,81 @@
       font-size: 16px; font-family: var(--font); padding: 0;
     }
     .reminder-close:hover { background: rgba(255,255,255,0.06); color: var(--text); }
+
+    /* ── Onboarding ── */
+    .onboarding {
+      position: fixed; inset: 0; z-index: 300;
+      background: var(--bg); display: flex; flex-direction: column;
+      align-items: center; justify-content: center; padding: 24px;
+    }
+    .onboarding.hidden { display: none; }
+    .onboarding-slides { width: 100%; max-width: 360px; position: relative; overflow: hidden; }
+    .onboarding-slide {
+      display: none; flex-direction: column; align-items: center;
+      text-align: center; gap: 20px; padding: 20px 0;
+      animation: slideUp 0.3s ease;
+    }
+    .onboarding-slide.active { display: flex; }
+    .onboarding-icon {
+      width: 120px; height: 120px; border-radius: 24px;
+      background: rgba(34,197,94,0.1); display: flex;
+      align-items: center; justify-content: center;
+    }
+    .onboarding-icon svg { width: 56px; height: 56px; color: var(--green); }
+    .onboarding-title { font-size: 22px; font-weight: 700; }
+    .onboarding-desc { font-size: 15px; color: var(--text-sec); line-height: 1.6; max-width: 300px; }
+    .onboarding-dots { display: flex; gap: 8px; margin-top: 32px; }
+    .onboarding-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--border); transition: all 0.3s;
+    }
+    .onboarding-dot.active { width: 24px; border-radius: 4px; background: var(--green); }
+    .onboarding-actions { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 360px; margin-top: 24px; }
+    .onboarding-skip {
+      background: none; border: none; color: var(--text-muted);
+      font-size: 14px; cursor: pointer; padding: 8px;
+      font-family: var(--font); transition: color 0.15s;
+    }
+    .onboarding-skip:hover { color: var(--text); }
   </style>
 </head>
 <body>
+
+  <!-- ── Onboarding ── -->
+  <div class="onboarding hidden" id="onboarding">
+    <div class="onboarding-slides">
+      <div class="onboarding-slide active" data-slide="0">
+        <div class="onboarding-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg>
+        </div>
+        <div class="onboarding-title">Кэшбэк Ассистент</div>
+        <div class="onboarding-desc">Отслеживайте категории кэшбэка по всем вашим картам в одном месте</div>
+      </div>
+      <div class="onboarding-slide" data-slide="1">
+        <div class="onboarding-icon" style="background:rgba(234,179,8,0.1)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color:#eab308"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        </div>
+        <div class="onboarding-title">Импорт COIN</div>
+        <div class="onboarding-desc">Загрузите файл категорий вашего банка в формате COIN — это занимает пару секунд</div>
+      </div>
+      <div class="onboarding-slide" data-slide="2">
+        <div class="onboarding-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/><circle cx="12" cy="12" r="10" stroke-dasharray="4 4"/></svg>
+        </div>
+        <div class="onboarding-title">Выбирайте выгодно</div>
+        <div class="onboarding-desc">Отметьте нужные категории — приложение запомнит ваш выбор на каждый месяц</div>
+      </div>
+    </div>
+    <div class="onboarding-dots" id="onboardingDots">
+      <div class="onboarding-dot active"></div>
+      <div class="onboarding-dot"></div>
+      <div class="onboarding-dot"></div>
+    </div>
+    <div class="onboarding-actions">
+      <button class="btn btn-primary" id="onboardingNextBtn" onclick="onboardingNext()" style="width:100%;padding:14px;font-size:16px">Далее</button>
+      <button class="onboarding-skip" onclick="closeOnboarding()">Пропустить</button>
+    </div>
+  </div>
 
   <!-- ── Header ── -->
   <header class="header">
@@ -1631,6 +1713,11 @@ function renderBanks(app) {
       html += '<span class="badge" style="background:' + bc.color + '"><span style="width:13px;height:13px">' + ICONS.check + '</span>' + selCount + '</span>';
     }
     html += '<button class="btn' + (isExp ? ' btn-primary' : ' btn-outline') + ' btn-sm" onclick="toggleExpand(\'' + bank.id + '\')" style="gap:5px;min-height:36px;padding:6px 12px;font-size:13px"><span style="width:16px;height:16px">' + (isExp ? ICONS.chevUp : ICONS.chevDown) + '</span>' + (isExp ? 'Свернуть' : 'Выбрать') + '</button>';
+    const bankIdx = banks.indexOf(bank);
+    html += '<div class="bc-reorder">';
+    html += '<button class="bc-reorder-btn" onclick="event.stopPropagation();moveBank(\'' + bank.id + '\',-1)" title="Выше"' + (bankIdx === 0 ? ' disabled' : '') + '><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg></button>';
+    html += '<button class="bc-reorder-btn" onclick="event.stopPropagation();moveBank(\'' + bank.id + '\',1)" title="Ниже"' + (bankIdx === banks.length - 1 ? ' disabled' : '') + '><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>';
+    html += '</div>';
     html += '<button class="btn btn-sm btn-danger btn-icon" onclick="deleteBank(\'' + bank.id + '\')" title="Удалить" style="min-height:36px"><span style="width:16px;height:16px">' + ICONS.trash + '</span></button>';
     html += '</div></div></div>';
 
@@ -1762,6 +1849,55 @@ function deleteBank(bankId) {
   banks = banks.filter(b => b.id !== bankId);
   if (expandedBankId === bankId) expandedBankId = null;
   saveData(); render(); updateBadge();
+}
+function moveBank(bankId, direction) {
+  const idx = banks.findIndex(b => b.id === bankId);
+  if (idx < 0) return;
+  const newIdx = idx + direction;
+  if (newIdx < 0 || newIdx >= banks.length) return;
+  [banks[idx], banks[newIdx]] = [banks[newIdx], banks[idx]];
+  saveData(); render();
+}
+
+// ─── Onboarding ──────────────────────────────────────────────────────────────────
+const ONBOARDING_KEY = 'cashback-beta-onboarded';
+let onboardingSlide = 0;
+
+function showOnboarding() {
+  const el = document.getElementById('onboarding');
+  if (!el) return;
+  el.classList.remove('hidden');
+  onboardingSlide = 0;
+  updateOnboardingSlide();
+}
+function closeOnboarding() {
+  const el = document.getElementById('onboarding');
+  if (el) el.classList.add('hidden');
+  localStorage.setItem(ONBOARDING_KEY, '1');
+}
+function updateOnboardingSlide() {
+  document.querySelectorAll('.onboarding-slide').forEach((s, i) => {
+    s.classList.toggle('active', i === onboardingSlide);
+  });
+  document.querySelectorAll('.onboarding-dot').forEach((d, i) => {
+    d.classList.toggle('active', i === onboardingSlide);
+  });
+  const btn = document.getElementById('onboardingNextBtn');
+  if (btn) {
+    if (onboardingSlide === 2) {
+      btn.textContent = 'Начать';
+      btn.onclick = closeOnboarding;
+    } else {
+      btn.textContent = 'Далее';
+      btn.onclick = onboardingNext;
+    }
+  }
+}
+function onboardingNext() {
+  if (onboardingSlide < 2) {
+    onboardingSlide++;
+    updateOnboardingSlide();
+  }
 }
 
 function toggleNotes(btn) {
@@ -2511,6 +2647,8 @@ function dismissReminder() {
   if (totalSelected === 0 && banks.length > 0) {
     switchToTab('banks');
   }
+  // Onboarding
+  if (!localStorage.getItem(ONBOARDING_KEY)) { showOnboarding(); }
   render();
   updateBadge();
   updateInstallBtn();
