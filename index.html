@@ -86,6 +86,8 @@
     .btn-icon { padding: 8px; width: 40px; height: 40px; }
     .btn svg { width: 18px; height: 18px; flex-shrink: 0; }
     .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    @keyframes btn-spin { to { transform: rotate(360deg); } }
+    .btn-spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: btn-spin 0.6s linear infinite; }
     @keyframes install-pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(34,197,94,0.4); } 50% { box-shadow: 0 0 0 6px rgba(34,197,94,0); } }
     .install-pulse { animation: install-pulse 2s infinite; color: var(--green) !important; }
 
@@ -731,7 +733,7 @@
     <div class="modal">
       <div class="modal-header">
         <div class="modal-title">Импорт COIN файла</div>
-        <div class="modal-desc" id="importDesc">Загрузите файл COIN 0.9.0 или вставьте JSON текст</div>
+        <div class="modal-desc" id="importDesc">Загрузите файл COIN 0.9.0 — файлом, текстом или по ссылке</div>
       </div>
       <div class="modal-body">
         <!-- Step 1: Input -->
@@ -744,6 +746,10 @@
             <button class="tab" id="tabPaste" onclick="switchImportTab('paste')">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>
               Текст
+            </button>
+            <button class="tab" id="tabUrl" onclick="switchImportTab('url')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+              URL
             </button>
           </div>
           <div id="importFileZone">
@@ -760,7 +766,21 @@
               Импортировать
             </button>
           </div>
+          <div id="importUrlZone" style="display:none">
+            <input type="url" class="import-input" id="importUrlInput" placeholder="https://example.com/cashback.json" autocomplete="off" style="font-size:14px">
+            <div style="font-size:12px;color:var(--text-muted);margin-top:6px">Вставьте ссылку на COIN JSON файл</div>
+            <button class="btn btn-primary" style="width:100%;margin-top:12px" onclick="handleUrlImport()" id="importUrlBtn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              Загрузить по ссылке
+            </button>
+          </div>
           <div class="error-text hidden" id="importError"></div>
+          <div style="margin-top:10px;text-align:center">
+            <button style="background:none;border:none;color:var(--text-muted);font-size:13px;cursor:pointer;font-family:var(--font);display:inline-flex;align-items:center;gap:4px;padding:4px 8px;border-radius:6px;transition:all 0.15s" onclick="closeImportModal();setTimeout(openScreenshotHelp,200)" onmouseover="this.style.color='var(--text-sec)';this.style.background='rgba(255,255,255,0.04)'" onmouseout="this.style.color='var(--text-muted)';this.style.background='none'">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              Импорт из скриншота (AI)
+            </button>
+          </div>
         </div>
         <!-- Step 2: Preview / Confirm -->
         <div id="importStep2" style="display:none">
@@ -1587,7 +1607,7 @@ function render() {
   try {
     const app = document.getElementById('app');
     if (banks.length === 0) {
-      app.innerHTML = '<div class="empty"><div style="width:64px;height:64px">' + ICONS.download + '</div><p>Нет добавленных банков</p><div style="display:flex;align-items:center;gap:8px"><button class="btn btn-primary" onclick="openImportModal()" style="gap:8px"><span style="width:18px;height:18px">' + ICONS.plus + '</span>Импорт COIN</button><button class="help-btn" onclick="openScreenshotHelp()" title="Импорт из скриншота">?</button></div></div>';
+      app.innerHTML = '<div class="empty"><div style="width:64px;height:64px">' + ICONS.download + '</div><p>Нет добавленных банков</p><div style="display:flex;align-items:center;gap:8px"><button class="btn btn-primary" onclick="openImportModal()" style="gap:8px"><span style="width:18px;height:18px">' + ICONS.plus + '</span>Импорт COIN</button></div></div>';
       return;
     }
     if (currentTab === 'selected') renderSelected(app);
@@ -1679,7 +1699,6 @@ function renderBanks(app) {
   html += '<span style="font-size:15px;color:var(--text-sec)">Банковские карты</span>';
   html += '<div style="display:flex;align-items:center;gap:6px">';
   html += '<button class="btn btn-primary btn-sm" onclick="openImportModal()" style="gap:6px;min-height:36px;padding:6px 12px;font-size:13px"><span style="width:16px;height:16px">' + ICONS.download + '</span>COIN</button>';
-  html += '<button class="help-btn" onclick="openScreenshotHelp()" title="Импорт из скриншота" style="width:36px;height:36px">?</button>';
   html += '</div></div>';
   html += '<div class="bank-grid' + (isExpanded ? ' has-expanded' : '') + '">';
 
@@ -1914,6 +1933,7 @@ function openImportModal() {
   document.getElementById('importError').classList.add('hidden');
   document.getElementById('importBankNameError').classList.add('hidden');
   document.getElementById('pasteText').value = '';
+  document.getElementById('importUrlInput').value = '';
   pendingImportCoinData = null;
   switchImportTab('file');
   showImportStep1();
@@ -1927,7 +1947,7 @@ function showImportStep1() {
   document.getElementById('importStep2').style.display = 'none';
   document.getElementById('importBackBtn').style.display = 'none';
   document.getElementById('importConfirmBtn').style.display = 'none';
-  document.getElementById('importDesc').textContent = 'Загрузите файл COIN 0.9.0 или вставьте JSON текст';
+  document.getElementById('importDesc').textContent = 'Загрузите файл COIN 0.9.0 — файлом, текстом или по ссылке';
 }
 function showImportStep2(coinData) {
   document.getElementById('importStep1').style.display = 'none';
@@ -1981,8 +2001,10 @@ function pluralCategory(n) {
 function switchImportTab(mode) {
   document.getElementById('tabFile').classList.toggle('active', mode === 'file');
   document.getElementById('tabPaste').classList.toggle('active', mode === 'paste');
+  document.getElementById('tabUrl').classList.toggle('active', mode === 'url');
   document.getElementById('importFileZone').style.display = mode === 'file' ? '' : 'none';
   document.getElementById('importPasteZone').style.display = mode === 'paste' ? '' : 'none';
+  document.getElementById('importUrlZone').style.display = mode === 'url' ? '' : 'none';
   document.getElementById('importError').classList.add('hidden');
 }
 function showImportError(msg) { const el = document.getElementById('importError'); el.textContent = msg; el.classList.remove('hidden'); }
@@ -2004,6 +2026,19 @@ function handlePasteImport() {
   const text = document.getElementById('pasteText').value.trim();
   if (!text) { showImportError('Вставьте JSON текст'); return; }
   try { previewCoinImport(JSON.parse(text)); } catch(err) { showImportError('Неверный формат JSON'); }
+}
+
+function handleUrlImport() {
+  const url = document.getElementById('importUrlInput').value.trim();
+  if (!url) { showImportError('Вставьте ссылку на JSON файл'); return; }
+  try { new URL(url); } catch(e) { showImportError('Неверный формат ссылки'); return; }
+  const btn = document.getElementById('importUrlBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span style="width:16px;height:16px" class="btn-spinner"></span> Загрузка...';
+  fetch(url)
+    .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
+    .then(text => { btn.disabled = false; btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Загрузить по ссылке'; try { previewCoinImport(JSON.parse(text)); } catch(err) { showImportError('Неверный формат JSON по ссылке'); } })
+    .catch(err => { btn.disabled = false; btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Загрузить по ссылке'; showImportError('Не удалось загрузить: ' + err.message); });
 }
 
 function previewCoinImport(coinData) {
@@ -2440,7 +2475,6 @@ const MCC_DATA = [
   ]},
   { group: 'Прочее', codes: [
     [4722, 'Туристические агентства'],
-    [4723, 'Туристические агентства (оптовые)'],
     [4732, 'Турагентства'],
     [5192, 'Садовые магазины / питомники'],
     [5193, 'Магазины цветов / теплицы'],
