@@ -160,10 +160,9 @@
     .bank-card.expanded { border-color: var(--bank-color, var(--green)); box-shadow: 0 0 20px color-mix(in srgb, var(--bank-color, var(--green)) 15%, transparent); }
     .bc-header { padding: 14px 16px; }
     .bc-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
-    .bc-info { min-width: 0; flex: 1; display: flex; align-items: flex-start; gap: 14px; }
-    .card-icon { margin-top: 2px; }
+    .bc-info { min-width: 0; flex: 1; display: flex; align-items: flex-start; gap: 12px; }
     .bc-text { min-width: 0; flex: 1; }
-    .bc-name { font-size: 16px; font-weight: 600; }
+    .bc-name { font-size: 16px; font-weight: 600; line-height: 26px; }
     .bc-website {
       display: inline-flex; align-items: center; gap: 4px;
       font-size: 12px; color: var(--text-muted); text-decoration: none;
@@ -175,7 +174,7 @@
     .bc-desc { font-size: 12px; color: var(--text-muted); margin-top: 6px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
     .bc-count { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
     .bc-actions { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
-    .bc-reorder { display: flex; flex-direction: column; gap: 1px; margin-right: 2px; }
+    .bc-reorder { display: flex; flex-direction: column; gap: 1px; align-self: center; margin-right: 6px; flex-shrink: 0; }
     .bc-reorder-btn {
       width: 20px; height: 18px; border: none; background: transparent;
       color: var(--text-muted); cursor: pointer; display: flex;
@@ -1879,7 +1878,14 @@ function renderBanks(app) {
 
     const cardCls = 'bank-card' + (isExp ? ' expanded' : selCount > 0 ? ' selected' : ' empty-alert');
     html += '<div class="' + cardCls + '" style="--bank-color:' + bc.color + '">';
-    html += '<div class="bc-header"><div class="bc-row"><div class="bc-info">';
+    const bankIdx = banks.indexOf(bank);
+    const bankMax = getMaxCategories(bank);
+    html += '<div class="bc-header"><div class="bc-row">';
+    html += '<div class="bc-reorder">';
+    html += '<button class="bc-reorder-btn" onclick="event.stopPropagation();moveBank(\'' + bank.id + '\',-1)" title="Выше"' + (bankIdx === 0 ? ' disabled' : '') + '><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg></button>';
+    html += '<button class="bc-reorder-btn" onclick="event.stopPropagation();moveBank(\'' + bank.id + '\',1)" title="Ниже"' + (bankIdx === banks.length - 1 ? ' disabled' : '') + '><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>';
+    html += '</div>';
+    html += '<div class="bc-info">';
     html += renderCardIcon(bank.coinData.provider.name);
     html += '<div class="bc-text">';
     html += '<div class="bc-name">' + escHtml(bank.coinData.provider.name) + '</div>';
@@ -1890,19 +1896,13 @@ function renderBanks(app) {
       html += '<div class="bc-desc">' + escHtml(bank.coinData.provider.notes) + '</div>';
     }
     html += '</div></div><div class="bc-actions">';
-    const bankMax = getMaxCategories(bank);
     if (selCount > 0) {
       html += '<span class="badge" style="background:' + bc.color + '"><span style="width:13px;height:13px">' + ICONS.check + '</span>' + selCount + '</span>';
     }
     html += '<button class="btn' + (isExp ? ' btn-primary' : ' btn-outline') + ' btn-sm" onclick="toggleExpand(\'' + bank.id + '\')" style="gap:5px;min-height:36px;padding:6px 12px;font-size:13px"><span style="width:16px;height:16px">' + (isExp ? ICONS.chevUp : ICONS.chevDown) + '</span>' + (isExp ? 'Свернуть' : 'Выбрать') + '</button>';
-    const bankIdx = banks.indexOf(bank);
-    html += '<div class="bc-reorder">';
-    html += '<button class="bc-reorder-btn" onclick="event.stopPropagation();moveBank(\'' + bank.id + '\',-1)" title="Выше"' + (bankIdx === 0 ? ' disabled' : '') + '><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg></button>';
-    html += '<button class="bc-reorder-btn" onclick="event.stopPropagation();moveBank(\'' + bank.id + '\',1)" title="Ниже"' + (bankIdx === banks.length - 1 ? ' disabled' : '') + '><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>';
-    html += '</div>';
     html += '<button class="btn btn-sm btn-danger btn-icon" onclick="deleteBank(\'' + bank.id + '\')" title="Удалить" style="min-height:36px"><span style="width:16px;height:16px">' + ICONS.trash + '</span></button>';
     html += '</div></div>';
-    html += '<div style="padding:0 16px 8px;font-size:12px;color:var(--text-muted)">' + selCount + ' выбрано' + (bankMax > 0 ? ' (лимит ' + bankMax + ')' : '') + '</div>';
+    html += '<div style="padding:0 16px 8px;margin-top:6px;font-size:12px;color:var(--text-muted)">' + selCount + ' выбрано' + (bankMax > 0 ? ' (лимит ' + bankMax + ')' : '') + '</div>';
     html += '</div>';
 
     if (isExp) {
