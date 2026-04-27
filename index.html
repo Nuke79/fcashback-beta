@@ -2274,47 +2274,6 @@ function dismissReminder() {
   checkMonthlyReminder();
   checkChangelog();
 })();
-
-// ─── Changelog ───────────────────────────────────────────────────────────────────
-const APP_VERSION = '2025.04.27';
-const CHANGELOG_SHOWN_KEY = 'changelog-shown';
-
-const CHANGELOG = [
-  { v: '2025.04.27', items: [
-    'Новый дизайн вкладки Банки (таблица)',
-    'Стрелки перемещения банка — слева от карточки',
-    'Счётчик выбранных/доступных категорий — под кнопкой «Выбрать»',
-    'Справка: описание рамок карточек, исправлены иконки',
-    'Поиск в MCC справочнике — исправлено исчезновение клавиатуры',
-    'Нумерация версий — теперь по дате (ГГГГ.ММ.ДД)',
-  ]},
-];
-
-function checkChangelog() {
-  const shown = localStorage.getItem(CHANGELOG_SHOWN_KEY);
-  if (shown === APP_VERSION) return;
-  const modal = document.createElement('div');
-  modal.className = 'overlay';
-  modal.id = 'changelogModal';
-  let html = '<div class="modal" style="max-width:400px"><div class="modal-header"><div class="modal-title">Обновление <span style="color:var(--green)">β' + APP_VERSION + '</span></div></div><div class="modal-body" style="font-size:13px;line-height:1.7;color:var(--text-sec)">';
-  const unseen = CHANGELOG.filter(c => !shown || c.v > shown);
-  for (const entry of unseen) {
-    html += '<div style="margin-bottom:16px"><div style="font-size:12px;font-weight:600;color:var(--green);margin-bottom:6px">β' + entry.v + '</div><ul style="margin:0 0 0 16px">';
-    for (const item of entry.items) {
-      html += '<li style="margin:3px 0">' + item + '</li>';
-    }
-    html += '</ul></div>';
-  }
-  html += '</div><div class="modal-footer"><button class="btn btn-primary" onclick="closeChangelog()" style="width:100%">Понятно</button></div></div>';
-  modal.innerHTML = html;
-  document.body.appendChild(modal);
-}
-
-function closeChangelog() {
-  localStorage.setItem(CHANGELOG_SHOWN_KEY, APP_VERSION);
-  const m = document.getElementById('changelogModal');
-  if (m) m.remove();
-}
 </script>
 </body>
 </html>
