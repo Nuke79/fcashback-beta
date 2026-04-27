@@ -1889,9 +1889,8 @@ function renderBanks(app) {
     if (bank.coinData.provider.notes) {
       html += '<div class="bc-desc">' + escHtml(bank.coinData.provider.notes) + '</div>';
     }
-    const bankMax = getMaxCategories(bank);
-    html += '<div class="bc-count">' + selCount + ' выбрано' + (bankMax > 0 ? ' (лимит ' + bankMax + ')' : '') + '</div>';
     html += '</div></div><div class="bc-actions">';
+    const bankMax = getMaxCategories(bank);
     if (selCount > 0) {
       html += '<span class="badge" style="background:' + bc.color + '"><span style="width:13px;height:13px">' + ICONS.check + '</span>' + selCount + '</span>';
     }
@@ -1902,7 +1901,9 @@ function renderBanks(app) {
     html += '<button class="bc-reorder-btn" onclick="event.stopPropagation();moveBank(\'' + bank.id + '\',1)" title="Ниже"' + (bankIdx === banks.length - 1 ? ' disabled' : '') + '><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>';
     html += '</div>';
     html += '<button class="btn btn-sm btn-danger btn-icon" onclick="deleteBank(\'' + bank.id + '\')" title="Удалить" style="min-height:36px"><span style="width:16px;height:16px">' + ICONS.trash + '</span></button>';
-    html += '</div></div></div>';
+    html += '</div></div>';
+    html += '<div style="padding:0 16px 8px;font-size:12px;color:var(--text-muted)">' + selCount + ' выбрано' + (bankMax > 0 ? ' (лимит ' + bankMax + ')' : '') + '</div>';
+    html += '</div>';
 
     if (isExp) {
       const rec = getRecommendation()[bank.id] || new Set();
