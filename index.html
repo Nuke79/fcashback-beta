@@ -158,13 +158,12 @@
     .bank-card.empty-alert:hover { border-color: color-mix(in srgb, #eab308 70%, var(--border)); }
     .bank-card.selected { border-color: color-mix(in srgb, var(--bank-color, var(--green)) 40%, transparent); }
     .bank-card.expanded { border-color: var(--bank-color, var(--green)); box-shadow: 0 0 20px color-mix(in srgb, var(--bank-color, var(--green)) 15%, transparent); }
-    .bc-header { padding: 0; }
-    .bc-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-    .bc-table td { padding: 14px 0; vertical-align: middle; }
-    .bc-table td.bc-cell-reorder { width: 28px; padding: 14px 0 14px 6px; text-align: center; vertical-align: middle; }
-    .bc-table td.bc-cell-icon { width: 40px; padding: 14px 0; }
-    .bc-table td.bc-cell-text { padding: 14px 12px 14px 0; word-break: break-word; overflow-wrap: break-word; }
-    .bc-table td.bc-cell-actions { width: auto; padding: 14px 12px 14px 8px; text-align: right; vertical-align: middle; white-space: nowrap; }
+    .bc-header { padding: 14px 16px; }
+    .bc-table { width: 100%; border-collapse: collapse; }
+    .bc-table td.bc-cell-reorder { width: 28px; text-align: center; vertical-align: top; padding: 0 0 0 0; }
+    .bc-table td.bc-cell-icon { width: 40px; vertical-align: top; padding: 0 0 0 0; }
+    .bc-table td.bc-cell-text { padding: 0 12px 0 0; vertical-align: top; }
+    .bc-table td.bc-cell-actions { width: auto; padding: 0 0 0 8px; text-align: right; vertical-align: top; white-space: nowrap; }
     .bc-text { min-width: 0; }
     .bc-name { font-size: 16px; font-weight: 600; }
     .bc-website {
@@ -1899,14 +1898,15 @@ function renderBanks(app) {
       html += '<div class="bc-desc">' + escHtml(bank.coinData.provider.notes) + '</div>';
     }
     html += '</div></td>';
-    html += '<td class="bc-cell-actions"><div class="bc-actions">';
+    html += '<td class="bc-cell-actions"><div style="display:flex;align-items:flex-start;gap:4px;justify-content:flex-end">';
+    html += '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">';
     html += '<button class="btn' + (isExp ? ' btn-primary' : ' btn-outline') + ' btn-sm" onclick="toggleExpand(\'' + bank.id + '\')" style="gap:5px;min-height:36px;padding:6px 12px;font-size:13px"><span style="width:16px;height:16px">' + (isExp ? ICONS.chevUp : ICONS.chevDown) + '</span>' + (isExp ? 'Свернуть' : 'Выбрать') + '</button>';
-    html += '<button class="btn btn-sm btn-danger btn-icon" onclick="deleteBank(\'' + bank.id + '\')" title="Удалить" style="min-height:36px"><span style="width:16px;height:16px">' + ICONS.trash + '</span></button>';
-    html += '</div>';
     if (selCount > 0) {
-      html += '<div style="margin-top:4px"><span class="badge" style="background:' + bc.color + '">' + selCount + '/' + (bankMax > 0 ? bankMax : '∞') + '</span></div>';
+      html += '<span class="badge" style="background:' + bc.color + '">' + selCount + '/' + (bankMax > 0 ? bankMax : '∞') + '</span>';
     }
-    html += '</td></tr></table></div>';
+    html += '</div>';
+    html += '<button class="btn btn-sm btn-danger btn-icon" onclick="deleteBank(\'' + bank.id + '\')" title="Удалить" style="min-height:36px"><span style="width:16px;height:16px">' + ICONS.trash + '</span></button>';
+    html += '</div></td></tr></table></div>';
     html += '</div>';
 
     if (isExp) {
@@ -2666,16 +2666,25 @@ function renderMCC(app) {
   html += '<span style="font-size:11px;color:var(--text-muted)">' + countMCCTotal() + ' кодов</span>';
   html += '</div>';
   html += '<div class="dop-new-row" style="margin-bottom:0;padding-bottom:12px;border-bottom:none">';
-  html += '<input type="text" class="dop-input" placeholder="Поиск по коду или описанию..." style="flex:1;min-width:0" value="' + escHtml(mccSearchQuery) + '" oninput="mccSearch(this.value)" onfocus="this.select()">';
+  html += '<input id="mcc-search-input" type="text" class="dop-input" placeholder="Поиск по коду или описанию..." style="flex:1;min-width:0" value="' + escHtml(mccSearchQuery) + '" oninput="mccSearchLive(this)" onfocus="this.select()">';
   html += '</div>';
-  html += '<div style="display:flex;flex-direction:column;gap:8px">';
+  html += '<div id="mcc-list">';
+  html += renderMCCList();
+  html += '</div></div>';
+  app.innerHTML = html;
+}
+
+function renderMCCList() {
+  let html = '<div style="display:flex;flex-direction:column;gap:8px">';
   const query = mccSearchQuery.toLowerCase().trim();
   const isSearching = query.length > 0;
+  let hasResults = false;
   for (const group of MCC_DATA) {
     const filtered = query
       ? group.codes.filter(c => String(c[0]).includes(query) || c[1].toLowerCase().includes(query))
       : group.codes;
     if (isSearching && filtered.length === 0) continue;
+    hasResults = hasResults || filtered.length > 0;
     const isExpanded = isSearching || mccExpandedGroups.has(group.group);
     html += '<div style="border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden">';
     html += '<div onclick="toggleMCCGroup(\'' + escHtml(group.group).replace(/'/g, "\\'") + '\')" style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;cursor:pointer;background:var(--bg-card);border-bottom:' + (isExpanded ? '1px solid var(--border)' : 'none') + ';transition:background 0.15s">';
@@ -2696,11 +2705,11 @@ function renderMCC(app) {
     }
     html += '</div>';
   }
-  if (isSearching && html.indexOf('mcc-row') === -1 && html.indexOf('monospace') === -1) {
+  if (isSearching && !hasResults) {
     html = '<div class="empty" style="padding:40px 20px"><div style="width:48px;height:48px">' + ICONS.book + '</div><p>Ничего не найдено</p></div>';
   }
-  html += '</div></div>';
-  app.innerHTML = html;
+  html += '</div>';
+  return html;
 }
 
 function countMCCTotal() {
@@ -2709,9 +2718,10 @@ function countMCCTotal() {
   return total;
 }
 
-function mccSearch(query) {
-  mccSearchQuery = query;
-  render();
+function mccSearchLive(input) {
+  mccSearchQuery = input.value;
+  const list = document.getElementById('mcc-list');
+  if (list) list.innerHTML = renderMCCList();
 }
 
 function toggleMCCGroup(groupName) {

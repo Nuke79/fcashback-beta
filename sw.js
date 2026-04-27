@@ -1,4 +1,4 @@
-const CACHE_NAME = 'cashback-beta-v14';
+const CACHE_NAME = 'cashback-beta-v16';
 const ASSETS = ['./index.html', './manifest.json', './icon-192.png'];
 
 // Install: cache all assets
