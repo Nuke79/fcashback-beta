@@ -1897,17 +1897,14 @@ function renderBanks(app) {
     }
     html += '</div></div><div class="bc-actions">';
     html += '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">';
-    if (selCount > 0) {
-      html += '<span class="badge" style="background:' + bc.color + '"><span style="width:13px;height:13px">' + ICONS.check + '</span>' + selCount + '</span>';
-    }
     html += '<div style="display:flex;align-items:center;gap:4px">';
     html += '<button class="btn' + (isExp ? ' btn-primary' : ' btn-outline') + ' btn-sm" onclick="toggleExpand(\'' + bank.id + '\')" style="gap:5px;min-height:36px;padding:6px 12px;font-size:13px"><span style="width:16px;height:16px">' + (isExp ? ICONS.chevUp : ICONS.chevDown) + '</span>' + (isExp ? 'Свернуть' : 'Выбрать') + '</button>';
     html += '<button class="btn btn-sm btn-danger btn-icon" onclick="deleteBank(\'' + bank.id + '\')" title="Удалить" style="min-height:36px"><span style="width:16px;height:16px">' + ICONS.trash + '</span></button>';
-    html += '</div></div></div></div>';
-    if (selCount > 0) {
-      html += '<div style="padding:0 16px 8px;font-size:12px;color:var(--text-muted)">' + selCount + ' выбрано' + (bankMax > 0 ? ' (лимит ' + bankMax + ')' : '') + '</div>';
-    }
     html += '</div>';
+    if (selCount > 0) {
+      html += '<span class="badge" style="background:' + bc.color + '">' + selCount + '/' + (bankMax > 0 ? bankMax : '∞') + '</span>';
+    }
+    html += '</div></div></div>';
 
     if (isExp) {
       const rec = getRecommendation()[bank.id] || new Set();
