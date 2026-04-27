@@ -636,6 +636,36 @@
       font-family: var(--font); transition: color 0.15s;
     }
     .onboarding-skip:hover { color: var(--text); }
+
+    /* ── Help Modal ── */
+    .help-tabs { display: flex; gap: 4px; background: var(--hover-soft); border-radius: var(--radius-sm); padding: 3px; margin-bottom: 14px; }
+    .help-tab {
+      flex: 1; padding: 8px 6px; border: none; border-radius: 6px;
+      font-size: 12px; font-weight: 500; cursor: pointer;
+      background: transparent; color: var(--text-muted);
+      transition: all 0.15s; font-family: var(--font);
+    }
+    .help-tab:hover { color: var(--text); }
+    .help-tab.active { background: var(--green); color: #fff; }
+    .help-content { font-size: 13px; line-height: 1.7; color: var(--text-sec); }
+    .help-content h4 { font-size: 14px; font-weight: 600; color: var(--text); margin: 14px 0 6px; }
+    .help-content h4:first-child { margin-top: 0; }
+    .help-content p { margin: 4px 0; }
+    .help-content ul { margin: 4px 0 8px 18px; }
+    .help-content li { margin: 3px 0; }
+    .help-content kbd {
+      display: inline-block; padding: 1px 5px; border-radius: 4px;
+      background: var(--tag-bg); font-size: 12px; font-family: var(--font);
+      border: 1px solid var(--border); color: var(--text);
+    }
+    .help-content strong { color: var(--text); }
+    .help-content .help-note {
+      margin-top: 12px; padding: 8px 10px; border-radius: var(--radius-sm);
+      background: rgba(234,179,8,0.08); border: 1px solid rgba(234,179,8,0.2);
+      font-size: 12px; color: var(--text-sec);
+    }
+    .help-panel { display: none; }
+    .help-panel.active { display: block; }
   </style>
 </head>
 <body>
@@ -683,6 +713,9 @@
       <div class="header-actions">
         <button class="btn btn-icon" id="installBtn" onclick="installPwa()" title="Добавить на главный экран" style="display:none">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        </button>
+        <button class="btn btn-icon" onclick="openHelpModal()" title="Справка" id="helpBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
         </button>
         <button class="btn btn-icon" onclick="toggleTheme()" title="Сменить тему" id="themeBtn">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="themeIconMoon"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
@@ -977,6 +1010,111 @@
     </div>
   </div>
 
+  <!-- ── Help Modal ── -->
+  <div class="overlay hidden" id="helpModal">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">Справка</div>
+      </div>
+      <div class="modal-body">
+        <div class="help-tabs">
+          <button class="help-tab active" onclick="switchHelpTab('banks',this)">Банки</button>
+          <button class="help-tab" onclick="switchHelpTab('mcc',this)">MCC</button>
+          <button class="help-tab" onclick="switchHelpTab('header',this)">Ещё</button>
+        </div>
+
+        <div class="help-panel active" id="helpBanks">
+          <div class="help-content">
+            <h4>Добавление банков</h4>
+            <p>Нажмите <kbd>COIN</kbd> вверху списка банков. Три способа:</p>
+            <ul>
+              <li><strong>Файл</strong> — выберите JSON файл COIN 0.9.0</li>
+              <li><strong>Текст</strong> — вставьте JSON текст напрямую</li>
+              <li><strong>URL</strong> — вставьте ссылку на COIN JSON файл</li>
+            </ul>
+
+            <h4>Импорт из скриншота (AI)</h4>
+            <p>Если нет COIN файла — сделайте скриншот категорий в банковском приложении, загрузите в AI-чат (DeepSeek, ChatGPT, Gemini) с готовым промптом. AI вернёт JSON — вставьте через вкладку «Текст». Ссылка на промпт — внизу модалки импорта.</p>
+
+            <h4>Выбор категорий</h4>
+            <p>Нажмите <kbd>Выбрать</kbd> на карточке банка. Отметьте нужные категории — выбор сохраняется на текущий месяц.</p>
+
+            <h4>Лимит категорий</h4>
+            <p>Некоторые банки ограничивают количество выбираемых категорий (например, 5 из 10). Лимит настраивается кнопками <kbd>+</kbd> <kbd>−</kbd> вверху списка. Строка прогресса показывает заполнение.</p>
+
+            <h4>Категории «не в лимите»</h4>
+            <p>Отметьте категорию как «не в лимите» (кнопка <kbd>∞</kbd> рядом) — она будет всегда выбрана и не учитывается в лимите. Используйте для кэшбэка «На все покупки» и подобных.</p>
+
+            <h4>Доп. категории</h4>
+            <p>Кнопка <kbd>Доп.</kbd> позволяет:</p>
+            <ul>
+              <li><strong>Новая</strong> — создать свою категорию с произвольным %</li>
+              <li><strong>Доп. %</strong> — добавить бонусный % к существующей категории банка (показывается как «доп. +X%»)</li>
+            </ul>
+
+            <h4>Кнопки в карточке банка</h4>
+            <ul>
+              <li><kbd>⚡ Рекомендации</kbd> — алгоритм автоматически выбирает категории с максимальным %, учитывая <strong>все</strong> ваши банки. Одинаковые категории (АЗС / Топливо) не дублируются.</li>
+              <li><kbd>📋 Прошлый</kbd> — скопировать выбор с прошлого месяца</li>
+              <li><kbd>🔄 Месяц</kbd> — перейти к следующему месяцу (очищает выбор)</li>
+              <li><kbd>↑ ↓</kbd> — переместить банк выше/ниже в списке</li>
+            </ul>
+
+            <h4>Обновление банка</h4>
+            <p>Если импортировать COIN файл с названием уже существующего банка — предложит «Обновить категории» (сбросить выбор) или «Обновить и сохранить выбор» (сохранить совпадающие).</p>
+          </div>
+        </div>
+
+        <div class="help-panel" id="helpMcc">
+          <div class="help-content">
+            <h4>Что такое MCC?</h4>
+            <p>MCC (Merchant Category Code) — 4-значный код, который банк присваивает каждому платежу по типу магазина. По MCC банк определяет, к какой категории относится покупка.</p>
+
+            <h4>Зачем нужен справочник?</h4>
+            <p>Названия категорий у банков разные. Справочник помогает выяснить, какой MCC у конкретного магазина и попадает ли он под кэшбэк.</p>
+
+            <h4>Поиск</h4>
+            <p>Введите код (например, <kbd>5812</kbd>) или часть названия (например, <kbd>ресторан</kbd>) — все группы с совпадениями раскроются автоматически, совпадения подсветятся.</p>
+
+            <h4>Связь с кэшбэком</h4>
+            <p>Когда банк пишет «Рестораны 5%», он имеет в виду определённые MCC (обычно 5811, 5812 и др.). Если магазин зарегистрирован с другим MCC — кэшбэк может не начисляться. Это частая причина «не прошёл кэшбэк».</p>
+
+            <div class="help-note">💡 Совет: перед крупной покупкой проверьте MCC магазина в чеке или выписке и сверьте с категориями кэшбэка вашего банка.</div>
+          </div>
+        </div>
+
+        <div class="help-panel" id="helpHeader">
+          <div class="help-content">
+            <h4>Смена темы</h4>
+            <p>Кнопка 🌙 / ☀️ переключает между тёмной и светлой темой. Выбор сохраняется между запусками.</p>
+
+            <h4>Экспорт / Восстановление</h4>
+            <p>Все данные хранятся локально на устройстве. Для переноса на другое:</p>
+            <ul>
+              <li><strong>Экспорт</strong> — скачивает JSON файл со всеми банками, выборами и настройками</li>
+              <li><strong>Восстановление</strong> — загружает ранее сохранённый файл</li>
+            </ul>
+
+            <h4>Очистка данных</h4>
+            <p>Кнопка 🗑️ удаляет все банки, выборы и настройки. Действие необратимо (если нет экспорта).</p>
+
+            <h4>Установка на телефон</h4>
+            <p>Кнопка ⬇️ в шапке (когда доступна) добавляет приложение на главный экран как PWA. Работает оффлайн после первой загрузки.</p>
+
+            <h4>Напоминание</h4>
+            <p>Жёлтый баннер «Выберите категории» появляется 1-го числа каждого месяца. Нажмите «Выбрать» — перейдёт к банкам. Кнопка <kbd>×</kbd> скроет до следующего месяца.</p>
+
+            <h4>Версия</h4>
+            <p>Нажмите на заголовок <strong>7 раз</strong> — покажется текущая версия (easter egg).</p>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="closeHelpModal()">Закрыть</button>
+      </div>
+    </div>
+  </div>
+
 <script>
 // ─── Easter Egg: tap title 7 times to show version ─────────────────────────────────
 let _tapCount = 0, _tapTimer = null;
@@ -1058,6 +1196,24 @@ function updateInstallBtn() {
     btn.title = 'Установить приложение';
     btn.style.display = 'none'; // hide until beforeinstallprompt fires
   }
+}
+
+// ─── Help Modal ───────────────────────────────────────────────────────────────────
+function openHelpModal() {
+  document.getElementById('helpModal').classList.remove('hidden');
+  // Auto-select tab based on current view
+  if (currentTab === 'mcc') switchHelpTab('mcc', document.querySelector('.help-tab:nth-child(2)'));
+  else switchHelpTab('banks', document.querySelector('.help-tab:first-child'));
+}
+function closeHelpModal() {
+  document.getElementById('helpModal').classList.add('hidden');
+}
+function switchHelpTab(tab, btn) {
+  document.querySelectorAll('.help-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.help-panel').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  const panelId = tab === 'banks' ? 'helpBanks' : tab === 'mcc' ? 'helpMcc' : 'helpHeader';
+  document.getElementById(panelId).classList.add('active');
 }
 
 // ─── Theme Toggle ────────────────────────────────────────────────────────────────
