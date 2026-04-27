@@ -1,0 +1,2413 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Кэшбэк Ассистент [BETA]</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0f172a; --bg-card: #1e293b; --bg-input: #1e293b; --bg-overlay: rgba(0,0,0,0.6);
+      --text: #f1f5f9; --text-sec: #94a3b8; --text-muted: #64748b;
+      --border: #334155; --border-hi: #475569;
+      --green: #22c55e; --green-dim: #16a34a; --red: #ef4444; --yellow: #eab308; --lime: #84cc16;
+      --radius: 12px; --radius-sm: 8px;
+      --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      --header-bg: rgba(15,23,42,0.88); --tab-bg: rgba(15,23,42,0.92);
+      --stroke-color: rgba(255,255,255,0.3); --shadow-color: rgba(0,0,0,0.7);
+    }
+    html.light {
+      --bg: #f1f5f9; --bg-card: #ffffff; --bg-input: #ffffff; --bg-overlay: rgba(0,0,0,0.4);
+      --text: #1e293b; --text-sec: #64748b; --text-muted: #94a3b8;
+      --border: #e2e8f0; --border-hi: #cbd5e1;
+      --header-bg: rgba(241,245,249,0.88); --tab-bg: rgba(241,245,249,0.92);
+      --stroke-color: rgba(0,0,0,0.15); --shadow-color: rgba(255,255,255,0.8);
+    }
+    html { font-family: var(--font); background: var(--bg); color: var(--text); }
+    body { min-height: 100vh; -webkit-font-smoothing: antialiased; padding-bottom: env(safe-area-inset-bottom, 0); }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    /* ── Header ── */
+    .header {
+      position: sticky; top: 0; z-index: 40;
+      background: var(--header-bg); backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+      padding: 10px 16px;
+    }
+    .header-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .header-title { font-size: 18px; font-weight: 700; }
+    .header-actions { display: flex; align-items: center; gap: 2px; flex-shrink: 0; }
+
+    /* ── Bottom Tab Bar ── */
+    .tab-bar {
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
+      background: var(--tab-bg); backdrop-filter: blur(16px);
+      border-top: 1px solid var(--border);
+      display: flex; padding: 6px 8px;
+      padding-bottom: max(6px, env(safe-area-inset-bottom, 6px));
+    }
+    .tab-btn {
+      flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px;
+      padding: 8px 4px 6px; border: none; border-radius: 10px;
+      font-size: 11px; font-weight: 500; cursor: pointer;
+      background: transparent; color: var(--text-muted);
+      transition: all 0.15s; font-family: var(--font);
+    }
+    .tab-btn svg { width: 22px; height: 22px; }
+    .tab-btn.active { color: var(--green); background: rgba(34,197,94,0.08); }
+    .tab-btn:not(.active):hover { color: var(--text-sec); }
+
+    /* ── Main ── */
+    .main { max-width: 900px; margin: 0 auto; padding: 16px 12px 90px; }
+
+    /* ── Buttons ── */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      padding: 8px 14px; border-radius: var(--radius-sm); border: none;
+      font-size: 14px; font-weight: 500; cursor: pointer;
+      transition: all 0.15s ease; white-space: nowrap;
+      background: transparent; color: var(--text-sec);
+      font-family: var(--font); min-height: 40px;
+    }
+    .btn:hover { background: rgba(255,255,255,0.08); color: var(--text); }
+    .btn-primary { background: var(--green); color: #fff; font-weight: 600; }
+    .btn-primary:hover { background: var(--green-dim); }
+    .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+    .btn-outline:hover { border-color: var(--border-hi); background: rgba(255,255,255,0.05); }
+    .btn-danger { color: var(--red); }
+    .btn-danger:hover { background: rgba(239,68,68,0.1); }
+    .btn-icon { padding: 8px; width: 40px; height: 40px; }
+    .btn svg { width: 18px; height: 18px; flex-shrink: 0; }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    @keyframes install-pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(34,197,94,0.4); } 50% { box-shadow: 0 0 0 6px rgba(34,197,94,0); } }
+    .install-pulse { animation: install-pulse 2s infinite; color: var(--green) !important; }
+
+    /* ── Bank Card Icon (CSS) ── */
+    .card-icon {
+      width: 40px; height: 26px; border-radius: 5px; position: relative;
+      background: var(--bank-color, #64748b); box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+      flex-shrink: 0; overflow: hidden;
+    }
+    .card-icon::before {
+      content: ''; position: absolute; top: 4px; left: 6px;
+      width: 14px; height: 10px; border-radius: 2px;
+      background: rgba(255,255,255,0.25);
+    }
+    .card-icon::after {
+      content: ''; position: absolute; bottom: 4px; right: 5px;
+      width: 14px; height: 9px; border-radius: 3px 3px 4px 4px;
+      background: rgba(255,255,255,0.35);
+    }
+    .card-icon.white-card { background: #cbd5e1; }
+    .card-icon.white-card::before { background: rgba(0,0,0,0.06); }
+    .card-icon.white-card::after { background: rgba(0,0,0,0.08); }
+    /* Light text chip for yellow cards */
+    .card-icon.dark-chip::before { background: rgba(0,0,0,0.12); }
+    .card-icon.dark-chip::after { background: rgba(0,0,0,0.08); }
+
+    /* ── Selected List ── */
+    .sel-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    .sel-title { font-size: 15px; font-weight: 600; color: var(--text-sec); }
+    .sel-count { font-size: 13px; color: var(--text-muted); }
+    .sel-group { margin-bottom: 6px; }
+    .sel-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 14px 14px; border-radius: var(--radius-sm);
+      background: var(--bg-card); border: 1px solid var(--border);
+      margin-bottom: 6px; transition: border-color 0.15s;
+    }
+    .sel-item:hover { border-color: var(--border-hi); }
+    .sel-item-info { flex: 1; min-width: 0; }
+    .sel-item-cat { font-size: 15px; font-weight: 500; }
+    .sel-item-bank-row { display: flex; align-items: center; gap: 8px; margin-top: 3px; }
+    .sel-item-bank { font-size: 14px; font-weight: 900; -webkit-text-stroke: 0.8px var(--stroke-color); text-shadow: 0 1px 6px var(--shadow-color), 0 0 8px var(--shadow-color); }
+    .sel-item-pct { font-size: 20px; font-weight: 900; flex-shrink: 0; -webkit-text-stroke: 0.7px var(--stroke-color); text-shadow: 0 1px 6px var(--shadow-color), 0 0 8px var(--shadow-color); }
+    .sel-item-limit { font-size: 11px; color: var(--text-muted); }
+    .sel-empty {
+      display: flex; flex-direction: column; align-items: center;
+      padding: 60px 20px; gap: 12px; text-align: center;
+    }
+    .sel-empty svg { color: var(--text-muted); opacity: 0.3; }
+    .sel-empty p { font-size: 14px; color: var(--text-muted); line-height: 1.6; }
+
+    /* ── Bank Cards Grid ── */
+    .bank-grid { display: grid; gap: 14px; grid-template-columns: 1fr; }
+    .bank-card {
+      background: var(--bg-card); border: 2px solid var(--border);
+      border-radius: var(--radius); overflow: hidden;
+      transition: all 0.2s ease;
+    }
+    .bank-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.2); }
+    .bank-card.empty-alert { border-color: color-mix(in srgb, #eab308 50%, var(--border)); }
+    .bank-card.empty-alert:hover { border-color: color-mix(in srgb, #eab308 70%, var(--border)); }
+    .bank-card.selected { border-color: color-mix(in srgb, var(--bank-color, var(--green)) 40%, transparent); }
+    .bank-card.expanded { border-color: var(--bank-color, var(--green)); box-shadow: 0 0 20px color-mix(in srgb, var(--bank-color, var(--green)) 15%, transparent); }
+    .bc-header { padding: 14px 16px; }
+    .bc-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+    .bc-info { min-width: 0; flex: 1; display: flex; align-items: flex-start; gap: 12px; }
+    .bc-text { min-width: 0; flex: 1; }
+    .bc-name { font-size: 16px; font-weight: 600; }
+    .bc-website {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: 12px; color: var(--text-muted); text-decoration: none;
+      margin-top: 3px; transition: color 0.15s;
+    }
+    .bc-website:visited { color: var(--text-muted); }
+    .bc-website:hover { color: var(--bank-color, var(--green)); }
+    .bc-website svg { width: 12px; height: 12px; }
+    .bc-desc { font-size: 12px; color: var(--text-muted); margin-top: 6px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .bc-count { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+    .bc-actions { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+    .badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 3px 8px; border-radius: 6px;
+      font-size: 11px; font-weight: 600; color: #fff;
+    }
+    .badge svg { width: 13px; height: 13px; }
+    .rec-badge {
+      background: #eab308; color: #000; font-size: 10px; font-weight: 700;
+      padding: 1px 6px; border-radius: 4px; margin-left: 6px;
+      letter-spacing: 0.5px;
+    }
+
+    /* ── Categories ── */
+    .categories { padding: 0 16px 16px; border-top: 1px solid var(--border); margin-top: 10px; padding-top: 14px; }
+    .categories-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+    .categories-month { font-size: 14px; font-weight: 500; }
+    .categories-list { max-height: 65vh; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
+
+    /* ── Category Row (larger for touch) ── */
+    .cat-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 14px 14px; border-radius: var(--radius-sm);
+      border: 1px solid var(--border); transition: all 0.15s ease;
+      cursor: pointer;
+    }
+    .cat-row:hover { border-color: var(--border-hi); }
+    .cat-row.checked {
+      background: color-mix(in srgb, var(--bank-color, var(--green)) 6%, transparent);
+      border-color: color-mix(in srgb, var(--bank-color, var(--green)) 35%, transparent);
+    }
+    .cat-row.recommended {
+      border-left: 3px solid #eab308;
+    }
+    .cat-row.recommended.checked {
+      border-left: 3px solid #eab308;
+    }
+    .cat-checkbox {
+      width: 24px; height: 24px; border-radius: 6px; flex-shrink: 0;
+      border: 2px solid var(--border-hi); display: flex;
+      align-items: center; justify-content: center; transition: all 0.15s;
+    }
+    .cat-row.checked .cat-checkbox {
+      background: var(--bank-color, var(--green)); border-color: var(--bank-color, var(--green));
+    }
+    .cat-checkbox svg { width: 16px; height: 16px; color: #fff; opacity: 0; }
+    .cat-row.checked .cat-checkbox svg { opacity: 1; }
+    .cat-info { flex: 1; min-width: 0; }
+    .cat-name { font-size: 15px; font-weight: 500; color: var(--text-muted); transition: color 0.15s; }
+    .cat-row.checked .cat-name { color: var(--text); }
+    .cat-details { display: flex; align-items: center; gap: 8px; margin-top: 3px; flex-wrap: wrap; }
+    .cat-percent { font-size: 16px; font-weight: 700; }
+    .cat-percent.high { color: var(--green); }
+    .cat-percent.mid { color: #4ade80; }
+    .cat-percent.low { color: var(--lime); }
+    .cat-percent.lowest { color: var(--yellow); }
+    .cat-limit {
+      font-size: 11px; color: var(--text-muted);
+      background: rgba(255,255,255,0.06); padding: 2px 8px; border-radius: 4px;
+    }
+    .cat-note-toggle {
+      padding: 6px; width: 34px; height: 34px; border: none;
+      background: transparent; color: var(--text-muted); cursor: pointer;
+      border-radius: 6px; display: flex; align-items: center; justify-content: center;
+      transition: all 0.15s; flex-shrink: 0;
+    }
+    .cat-note-toggle:hover { background: rgba(255,255,255,0.06); }
+    .cat-note-toggle svg { width: 18px; height: 18px; }
+    .cat-notes-box { padding: 4px 14px 12px 50px; display: flex; flex-direction: column; gap: 4px; }
+    .cat-note-text { font-size: 12px; color: var(--text-muted); line-height: 1.6; }
+    .cat-note-link {
+      font-size: 12px; color: var(--bank-color, var(--green)); text-decoration: none;
+      display: inline-flex; align-items: center; gap: 4px;
+    }
+    .cat-note-link:hover { text-decoration: underline; }
+    .cat-note-link svg { width: 12px; height: 12px; }
+
+    /* ── Category Limit ── */
+    .cat-row.disabled { opacity: 0.4; cursor: not-allowed; }
+    .cat-row.disabled:hover { border-color: var(--border); }
+    .cat-row.disabled .cat-checkbox { border-style: dashed; }
+    .cat-limit-bar {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 13px; color: var(--text-sec); margin-bottom: 10px;
+      padding: 8px 12px; border-radius: var(--radius-sm);
+      background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+    }
+    .cat-limit-bar.full { border-color: var(--yellow); background: rgba(234,179,8,0.06); }
+    .cat-limit-bar.over { border-color: var(--red); background: rgba(239,68,68,0.06); }
+    .cat-limit-controls { display: flex; align-items: center; gap: 4px; margin-left: auto; }
+    .cat-limit-btn {
+      width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--border);
+      background: transparent; color: var(--text-sec); cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; font-weight: 600; transition: all 0.15s;
+      font-family: var(--font); padding: 0; line-height: 1;
+    }
+    .cat-limit-btn:hover { background: rgba(255,255,255,0.08); border-color: var(--border-hi); color: var(--text); }
+    .cat-limit-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+    .cat-limit-value {
+      font-weight: 700; min-width: 20px; text-align: center;
+      font-size: 14px; color: var(--text);
+    }
+    .cat-limit-label { font-size: 11px; color: var(--text-muted); }
+    .cat-limit-progress {
+      flex: 1; height: 4px; border-radius: 2px;
+      background: rgba(255,255,255,0.08); overflow: hidden;
+    }
+    .cat-limit-progress-fill { height: 100%; border-radius: 2px; transition: width 0.2s, background 0.2s; }
+    .cat-limit-progress-fill.ok { background: var(--green); }
+    .cat-limit-progress-fill.full { background: var(--yellow); }
+    .cat-limit-progress-fill.over { background: var(--red); }
+
+    /* ── Dop Categories ── */
+    .dop-tag {
+      display: inline-flex; align-items: center;
+      font-size: 10px; font-weight: 700; letter-spacing: 0.3px;
+      color: var(--text-sec);
+      background: rgba(255,255,255,0.06);
+      padding: 1px 5px; border-radius: 4px; margin-left: 4px;
+    }
+    .dop-section-title {
+      font-size: 13px; font-weight: 600; color: var(--text-sec); margin-bottom: 8px;
+    }
+    .dop-new-row {
+      display: flex; gap: 8px; align-items: center;
+      margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--border);
+    }
+    .dop-input {
+      padding: 8px 12px; border-radius: var(--radius-sm);
+      border: 1px solid var(--border); background: var(--bg-input);
+      color: var(--text); font-size: 14px; font-family: var(--font); outline: none;
+    }
+    .dop-input:focus { border-color: var(--green); }
+    .dop-input::placeholder { color: var(--text-muted); }
+    .dop-cat-item {
+      display: flex; align-items: center; gap: 8px;
+      padding: 10px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border);
+    }
+    .dop-cat-item:hover { border-color: var(--border-hi); }
+    .dop-cat-name { flex: 1; font-size: 14px; font-weight: 500; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .dop-cat-base { font-size: 13px; color: var(--text-muted); white-space: nowrap; }
+    .dop-cat-input {
+      width: 52px; padding: 6px 8px; border-radius: 6px;
+      border: 1px solid var(--border); background: var(--bg-input);
+      color: var(--text); font-size: 13px; font-family: var(--font);
+      text-align: center; outline: none;
+    }
+    .dop-cat-input:focus { border-color: var(--green); }
+    .dop-cat-input::placeholder { color: var(--text-muted); }
+    .dop-cat-total { font-size: 14px; font-weight: 700; color: var(--green); white-space: nowrap; }
+    .dop-cat-remove {
+      width: 26px; height: 26px; border-radius: 6px; border: none;
+      background: transparent; color: var(--red); cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; font-family: var(--font); padding: 0; flex-shrink: 0;
+    }
+    .dop-cat-remove:hover { background: rgba(239,68,68,0.1); }
+    .dop-custom-item {
+      display: flex; align-items: center; gap: 8px;
+      padding: 10px 12px; border-radius: var(--radius-sm);
+      border: 1px solid color-mix(in srgb, var(--green) 30%, var(--border));
+      background: color-mix(in srgb, var(--green) 3%, transparent);
+    }
+    .dop-custom-name { flex: 1; font-size: 14px; font-weight: 500; }
+    .dop-custom-pct { font-size: 14px; font-weight: 700; color: var(--green); }
+    .dop-excl-toggle {
+      display: flex; align-items: center; gap: 4px; cursor: pointer;
+      font-size: 11px; color: var(--text-muted); white-space: nowrap;
+      padding: 3px 6px; border-radius: 4px; border: none; background: transparent;
+      font-family: var(--font); transition: all 0.15s; flex-shrink: 0;
+    }
+    .dop-excl-toggle:hover { color: var(--text-sec); background: rgba(255,255,255,0.04); }
+    .dop-excl-toggle.active { color: var(--green); }
+    .dop-excl-toggle svg { width: 13px; height: 13px; }
+    .cat-row.excluded .cat-name::after {
+      content: '∞';
+      font-size: 10px; font-weight: 700; color: var(--text-muted);
+      margin-left: 4px;
+    }
+
+    /* ── Empty ── */
+    .empty {
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; padding: 80px 20px; gap: 16px; text-align: center;
+    }
+    .empty svg { color: var(--text-muted); opacity: 0.3; }
+    .empty p { font-size: 14px; color: var(--text-muted); }
+
+    /* ── Modals ── */
+    .overlay {
+      position: fixed; inset: 0; z-index: 100;
+      background: var(--bg-overlay); display: flex;
+      align-items: center; justify-content: center; padding: 16px;
+      animation: fadeIn 0.15s ease;
+    }
+    .overlay.hidden { display: none; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    .modal {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius); width: 100%; max-width: 440px;
+      max-height: 90vh; overflow-y: auto;
+      animation: slideUp 0.2s ease;
+    }
+    @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    .modal-header { padding: 20px 20px 0; }
+    .modal-title { font-size: 17px; font-weight: 600; }
+    .modal-dop-badge {
+      display: inline-block; font-size: 11px; font-weight: 600; color: #eab308;
+      background: rgba(234,179,8,0.1); padding: 1px 6px; border-radius: 4px; margin-left: 6px;
+    }
+    .modal-desc { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
+    .modal-body { padding: 16px 20px; }
+    .modal-footer { padding: 12px 20px 20px; display: flex; justify-content: flex-end; gap: 8px; }
+
+    .tabs {
+      display: flex; gap: 4px; background: rgba(255,255,255,0.04);
+      border-radius: var(--radius-sm); padding: 4px; margin-bottom: 12px;
+    }
+    .tab {
+      flex: 1; padding: 10px; border: none; border-radius: 6px;
+      font-size: 13px; font-weight: 500; cursor: pointer;
+      background: transparent; color: var(--text-muted);
+      transition: all 0.15s; display: flex; align-items: center;
+      justify-content: center; gap: 6px; font-family: var(--font);
+    }
+    .tab:hover { color: var(--text); }
+    .tab.active { background: var(--green); color: #fff; }
+    .tab svg { width: 16px; height: 16px; }
+
+    .upload-zone {
+      border: 2px dashed var(--border); border-radius: var(--radius-sm);
+      padding: 32px 16px; text-align: center; cursor: pointer;
+      transition: border-color 0.15s;
+    }
+    .upload-zone:hover { border-color: rgba(34,197,94,0.5); }
+    .upload-zone svg { margin: 0 auto 8px; color: var(--text-muted); }
+    .upload-zone p { font-size: 13px; color: var(--text-muted); }
+
+    .textarea {
+      width: 100%; min-height: 150px; padding: 12px;
+      background: var(--bg-input); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); color: var(--text);
+      font-size: 13px; font-family: 'SF Mono', Monaco, monospace;
+      resize: vertical; outline: none;
+    }
+    .textarea:focus { border-color: var(--green); }
+    .textarea::placeholder { color: var(--text-muted); }
+    .error-text { font-size: 13px; color: var(--red); margin-top: 8px; }
+
+    .import-label { display: block; font-size: 13px; font-weight: 500; color: var(--text-sec); margin-bottom: 6px; }
+    .import-input {
+      width: 100%; padding: 10px 12px;
+      background: var(--bg-input); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); color: var(--text);
+      font-size: 15px; font-family: var(--font); outline: none;
+      transition: border-color 0.15s;
+    }
+    .import-input:focus { border-color: var(--green); }
+    .import-input.import-input-warn { border-color: #f59e0b; }
+    .import-input.import-input-warn:focus { border-color: #d97706; }
+    .import-input::placeholder { color: var(--text-muted); }
+
+    .action-card {
+      display: flex; align-items: flex-start; gap: 12px;
+      padding: 14px; border-radius: var(--radius-sm);
+      border: 1px solid var(--border); cursor: pointer;
+      text-align: left; width: 100%; background: transparent;
+      color: var(--text); transition: all 0.15s; font-family: var(--font);
+    }
+    .action-card:hover { border-color: var(--border-hi); background: rgba(255,255,255,0.03); }
+    .action-card svg { flex-shrink: 0; margin-top: 2px; }
+    .action-card-title { font-size: 14px; font-weight: 500; }
+    .action-card-desc { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+    /* ── Tab Panels ── */
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    /* ── Tab Swipe Animation ── */
+    .main { transition: opacity 0.15s ease, transform 0.15s ease; }
+    .main.slide-out-left { opacity: 0; transform: translateX(-30px); }
+    .main.slide-out-right { opacity: 0; transform: translateX(30px); }
+
+    /* ── Responsive ── */
+    @media (min-width: 641px) {
+      .bank-grid { grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); }
+      .bank-grid.has-expanded { grid-template-columns: 1fr; }
+      .sel-item { padding: 12px 16px; }
+    }
+    @media (max-width: 480px) {
+      .header-title { font-size: 16px; }
+      .bc-name { font-size: 15px; }
+      .btn-icon { width: 36px; height: 36px; padding: 6px; }
+    }
+
+    /* ── Screenshot Help Modal ── */
+    .screenshot-steps { display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px; }
+    .screenshot-step {
+      display: flex; gap: 12px; align-items: flex-start;
+      padding: 12px; border-radius: var(--radius-sm);
+      border: 1px solid var(--border); background: rgba(255,255,255,0.02);
+    }
+    .screenshot-step-num {
+      width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+      background: var(--green); color: #fff; font-size: 13px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .screenshot-step-text { font-size: 13px; line-height: 1.5; color: var(--text-sec); }
+    .screenshot-step-text strong { color: var(--text); }
+    .screenshot-prompt-box {
+      position: relative; margin-bottom: 12px;
+    }
+    .screenshot-prompt-label {
+      font-size: 12px; font-weight: 600; color: var(--text-sec); margin-bottom: 6px;
+      text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .screenshot-prompt-text {
+      width: 100%; min-height: 120px; padding: 12px;
+      background: rgba(0,0,0,0.2); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); color: var(--text);
+      font-size: 12px; font-family: 'SF Mono', Monaco, 'Courier New', monospace;
+      line-height: 1.5; resize: none; outline: none;
+    }
+    html.light .screenshot-prompt-text { background: rgba(0,0,0,0.04); }
+    .screenshot-copy-btn {
+      position: absolute; top: 28px; right: 8px;
+      padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border);
+      background: var(--bg-card); color: var(--text-sec); cursor: pointer;
+      font-size: 11px; font-weight: 500; display: flex; align-items: center; gap: 4px;
+      font-family: var(--font); transition: all 0.15s;
+    }
+    .screenshot-copy-btn:hover { border-color: var(--green); color: var(--green); }
+    .screenshot-copy-btn svg { width: 14px; height: 14px; }
+    .screenshot-links {
+      display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px;
+    }
+    .screenshot-link {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 8px 12px; border-radius: var(--radius-sm);
+      border: 1px solid var(--border); background: transparent;
+      color: var(--text); font-size: 13px; text-decoration: none;
+      cursor: pointer; font-family: var(--font); transition: all 0.15s;
+    }
+    .screenshot-link:hover { border-color: var(--green); color: var(--green); background: rgba(34,197,94,0.05); }
+    .screenshot-link svg { width: 16px; height: 16px; }
+    .screenshot-example-toggle {
+      padding: 6px 0; border: none; background: transparent;
+      color: var(--text-muted); font-size: 12px; cursor: pointer;
+      font-family: var(--font); display: flex; align-items: center; gap: 4px;
+      transition: color 0.15s;
+    }
+    .screenshot-example-toggle:hover { color: var(--text-sec); }
+    .screenshot-example-toggle svg { width: 14px; height: 14px; transition: transform 0.2s; }
+    .screenshot-example-toggle.open svg { transform: rotate(90deg); }
+    .screenshot-example {
+      display: none; margin-top: 8px; padding: 12px;
+      background: rgba(0,0,0,0.2); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); font-size: 11px;
+      font-family: 'SF Mono', Monaco, monospace; line-height: 1.5;
+      color: var(--text-sec); max-height: 200px; overflow-y: auto;
+      white-space: pre-wrap; word-break: break-all;
+    }
+    html.light .screenshot-example { background: rgba(0,0,0,0.03); }
+    .screenshot-example.show { display: block; }
+    .screenshot-divider {
+      height: 1px; background: var(--border); margin: 12px 0;
+    }
+    .help-btn {
+      width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--border);
+      background: transparent; color: var(--text-muted); cursor: pointer;
+      font-size: 14px; font-weight: 700; display: inline-flex;
+      align-items: center; justify-content: center; transition: all 0.15s;
+      font-family: var(--font); padding: 0; flex-shrink: 0;
+    }
+    .help-btn { background: #eab308; color: #000; border-color: #eab308; font-weight: 800; }
+    .help-btn:hover { background: #ca8a04; border-color: #ca8a04; color: #000; }
+
+    /* ── Toast ── */
+    .toast {
+      position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
+      background: var(--bg-card); border: 1px solid var(--border);
+      color: var(--text); padding: 10px 20px; border-radius: var(--radius-sm);
+      font-size: 13px; z-index: 200; box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+      animation: toastIn 0.2s ease, toastOut 0.3s ease 2.7s forwards;
+      pointer-events: none; white-space: nowrap;
+    }
+    @keyframes toastIn { from { opacity: 0; transform: translateX(-50%) translateY(10px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+    @keyframes toastOut { from { opacity: 1; } to { opacity: 0; } }
+  </style>
+</head>
+<body>
+
+  <!-- ── Header ── -->
+  <header class="header">
+    <div class="header-row">
+      <div class="header-title" id="headerTitle" onclick="easterEggTap()">Кэшбэк <span style="color:#eab308;font-size:12px;font-weight:700;vertical-align:super">BETA</span></div>
+      <div class="header-actions">
+        <button class="btn btn-icon" id="installBtn" onclick="installPwa()" title="Добавить на главный экран" style="display:none">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        </button>
+        <button class="btn btn-icon" onclick="toggleTheme()" title="Сменить тему" id="themeBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="themeIconMoon"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="themeIconSun" style="display:none"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+        </button>
+        <button class="btn btn-icon" onclick="exportBackup()" title="Экспорт">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        </button>
+        <button class="btn btn-icon" onclick="importBackup()" title="Восстановить">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        </button>
+        <button class="btn btn-icon btn-danger" onclick="openClearModal()" title="Очистить">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── Main ── -->
+  <main class="main" id="app"></main>
+
+  <!-- ── Bottom Tab Bar ── -->
+  <nav class="tab-bar">
+    <button class="tab-btn active" id="tabSelected" onclick="switchTab('selected')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+      <span>Выбранное</span>
+    </button>
+    <button class="tab-btn" id="tabBanks" onclick="switchTab('banks')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg>
+      <span>Банки</span>
+    </button>
+    <button class="tab-btn" id="tabMCC" onclick="switchTab('mcc')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
+      <span>MCC</span>
+    </button>
+  </nav>
+
+  <!-- ── Import COIN Modal ── -->
+  <div class="overlay hidden" id="importModal">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">Импорт COIN файла</div>
+        <div class="modal-desc" id="importDesc">Загрузите файл COIN 0.9.0 или вставьте JSON текст</div>
+      </div>
+      <div class="modal-body">
+        <!-- Step 1: Input -->
+        <div id="importStep1">
+          <div class="tabs">
+            <button class="tab active" id="tabFile" onclick="switchImportTab('file')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              Файл
+            </button>
+            <button class="tab" id="tabPaste" onclick="switchImportTab('paste')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>
+              Текст
+            </button>
+          </div>
+          <div id="importFileZone">
+            <div class="upload-zone" onclick="document.getElementById('coinFileInput').click()">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              <p>Нажмите для выбора JSON файла</p>
+            </div>
+            <input type="file" id="coinFileInput" accept=".json" style="display:none" onchange="handleFileUpload(event)">
+          </div>
+          <div id="importPasteZone" style="display:none">
+            <textarea class="textarea" id="pasteText" placeholder="Вставьте JSON текст COIN файла..."></textarea>
+            <button class="btn btn-primary" style="width:100%;margin-top:12px" onclick="handlePasteImport()">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              Импортировать
+            </button>
+          </div>
+          <div class="error-text hidden" id="importError"></div>
+        </div>
+        <!-- Step 2: Preview / Confirm -->
+        <div id="importStep2" style="display:none">
+          <div style="margin-bottom:14px">
+            <label class="import-label">Банк</label>
+            <input type="text" class="import-input" id="importBankName" list="bankNameList" placeholder="Введите название банка" autocomplete="off">
+            <datalist id="bankNameList"></datalist>
+            <div class="error-text hidden" id="importBankNameError">Укажите название банка</div>
+          </div>
+          <div id="importPreview" style="font-size:13px;color:var(--text-sec)"></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" id="importBackBtn" style="display:none" onclick="importBack()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+          Назад
+        </button>
+        <div style="flex:1"></div>
+        <button class="btn btn-outline" id="importCancelBtn" onclick="closeImportModal()">Отмена</button>
+        <button class="btn btn-primary" id="importConfirmBtn" style="display:none" onclick="confirmImport()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          Добавить банк
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Duplicate Modal ── -->
+  <div class="overlay hidden" id="duplicateModal">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">Банк уже существует</div>
+        <div class="modal-desc" id="dupBankName"></div>
+      </div>
+      <div class="modal-body" style="display:flex;flex-direction:column;gap:8px">
+        <button class="action-card" onclick="handleDuplicate('replace')">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
+          <div><div class="action-card-title">Обновить категории</div><div class="action-card-desc">Заменить данные, сбросить текущий выбор</div></div>
+        </button>
+        <button class="action-card" onclick="handleDuplicate('keep')">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          <div><div class="action-card-title">Обновить и сохранить выбор</div><div class="action-card-desc">Заменить данные, сохранить совпадающие выбранные</div></div>
+        </button>
+        <button class="action-card" onclick="handleDuplicate('cancel')">
+          <div class="action-card-title">Отмена</div>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Dop Categories Modal ── -->
+  <div class="overlay hidden" id="dopModal">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">Доп. категории</div>
+        <div class="modal-desc" id="dopBankName"></div>
+      </div>
+      <div class="modal-body" style="display:flex;flex-direction:column;gap:0">
+        <div class="dop-section-title">Новая категория</div>
+        <div class="dop-new-row">
+          <input type="text" id="dopNewName" class="dop-input" placeholder="Название" style="flex:1;min-width:0">
+          <input type="number" id="dopNewPercent" class="dop-input" placeholder="%" style="width:56px;text-align:center" min="0" step="0.1">
+          <button class="btn btn-primary btn-sm" onclick="addCustomCat()" style="min-height:36px;padding:6px 12px;font-size:15px">＋</button>
+        </div>
+        <div id="dopCustomList" style="display:flex;flex-direction:column;gap:6px;margin-bottom:16px"></div>
+        <div class="dop-section-title">Доп. % к категориям банка</div>
+        <div id="dopCategoryList" style="display:flex;flex-direction:column;gap:6px;max-height:40vh;overflow-y:auto"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="closeDopModal()">Готово</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Clear All Modal ── -->
+  <div class="overlay hidden" id="clearModal">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">Очистить все данные?</div>
+        <div class="modal-desc">Все банковские карты и выбранные категории будут удалены.</div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="closeClearModal()">Отмена</button>
+        <button class="btn btn-primary" style="background:var(--red)" onclick="clearAll()">Очистить</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Screenshot Import Help Modal ── -->
+  <div class="overlay hidden" id="screenshotHelpModal">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">Импорт из скриншота</div>
+        <div class="modal-desc">Извлеките категории кэшбэка с помощью AI</div>
+      </div>
+      <div class="modal-body">
+        <div class="screenshot-steps">
+          <div class="screenshot-step">
+            <div class="screenshot-step-num">1</div>
+            <div class="screenshot-step-text"><strong>Сделайте скриншот</strong> категорий кэшбэка в банковском приложении</div>
+          </div>
+          <div class="screenshot-step">
+            <div class="screenshot-step-num">2</div>
+            <div class="screenshot-step-text"><strong>Откройте AI-чат</strong> и отправьте скриншот + промпт (кнопка ниже)</div>
+          </div>
+          <div class="screenshot-step">
+            <div class="screenshot-step-num">3</div>
+            <div class="screenshot-step-text"><strong>Скопируйте JSON</strong> из ответа AI и импортируйте через кнопку «COIN»</div>
+          </div>
+        </div>
+
+        <div class="screenshot-prompt-box">
+          <div class="screenshot-prompt-label">Промпт для AI (скопируйте и вставьте в чат)</div>
+          <textarea class="screenshot-prompt-text" id="screenshotPrompt" readonly>Из скриншота извлеки категории кэшбэка в формате JSON COIN 0.9.0.
+Структура:
+- coinVersion: "0.9.0"
+- created: текущая дата ISO 8601
+- provider: { name, website, notes }
+  - name: название банка (по логотипу/интерфейсу). Если не удалось определить — ""
+  - website: "https://..." или "" если неизвестен
+  - notes: краткое описание карты, если есть на скриншоте, иначе ""
+- cashback.entries: массив объектов:
+  - category: название категории (строка, обязательно)
+  - percent: процент кэшбэка (число > 0, обязательно)
+  - limit: месячный лимит в рублях (целое число > 0). Если не указан — НЕ ВКЛЮЧАЙ поле
+  - mccs: ["5812", ...] — коды MCC если известны, иначе НЕ ВКЛЮЧАЙ поле
+  - notes: [0, 1, ...] — индексы из массива notes (только если есть условия)
+  - links: [0, ...] — индексы из массива links (только если есть ссылки)
+- notes: [{ id: 0, note: "текст условия" }, ...] — если есть условия, иначе []
+- links: [{ id: 0, link: "https://..." }, ...] — если есть ссылки, иначе []
+
+Верни ТОЛЬКО JSON, без пояснений.</textarea>
+          <button class="screenshot-copy-btn" onclick="copyScreenshotPrompt()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+            Копировать
+          </button>
+        </div>
+
+        <div class="screenshot-links">
+          <a href="https://chat.deepseek.com" target="_blank" rel="noopener noreferrer" class="screenshot-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+            DeepSeek
+          </a>
+          <a href="https://chatgpt.com" target="_blank" rel="noopener noreferrer" class="screenshot-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+            ChatGPT
+          </a>
+          <a href="https://gemini.google.com" target="_blank" rel="noopener noreferrer" class="screenshot-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+            Gemini
+          </a>
+        </div>
+
+        <div class="screenshot-divider"></div>
+
+        <button class="screenshot-example-toggle" id="exampleToggle" onclick="toggleScreenshotExample()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          Пример ответа AI (COIN JSON)
+        </button>
+        <div class="screenshot-example" id="screenshotExample">{
+  "coinVersion": "0.9.0",
+  "created": "2026-04-03T12:00:00+03:00",
+  "provider": {
+    "name": "Тинькофф",
+    "website": "",
+    "notes": ""
+  },
+  "cashback": {
+    "entries": [
+      {"category": "Супермаркеты", "percent": 5, "limit": null, "mccs": [], "notes": [0], "links": []},
+      {"category": "Рестораны", "percent": 5, "limit": null, "mccs": [], "notes": [0], "links": []},
+      {"category": "АЗС", "percent": 3, "limit": 1500, "mccs": [], "notes": [1], "links": []},
+      {"category": "На все покупки", "percent": 1, "limit": null, "mccs": [], "notes": [2], "links": []}
+    ]
+  },
+  "notes": [
+    {"id": 0, "note": "Категория на выбор"},
+    {"id": 1, "note": "Кэшбэк начисляется в бонусах, лимит до 1 500 ₽"},
+    {"id": 2, "note": "Всегда действующий кэшбэк"}
+  ],
+  "links": []
+}</div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="closeScreenshotHelp()">Закрыть</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+// ─── Easter Egg: tap title 7 times to show version ─────────────────────────────────
+let _tapCount = 0, _tapTimer = null;
+function easterEggTap() {
+  _tapCount++;
+  clearTimeout(_tapTimer);
+  _tapTimer = setTimeout(() => { _tapCount = 0; }, 1500);
+  if (_tapCount >= 7) {
+    _tapCount = 0;
+    // Get SW cache version
+    if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+      navigator.serviceWorker.controller.postMessage('getVersion');
+    }
+    navigator.serviceWorker.addEventListener('message', function handler(e) {
+      if (e.data && e.data.version) {
+        showToast('⚙ V' + e.data.version);
+        navigator.serviceWorker.removeEventListener('message', handler);
+      }
+    });
+  }
+}
+
+function showToast(msg) {
+  const existing = document.querySelector('.toast');
+  if (existing) existing.remove();
+  const el = document.createElement('div');
+  el.className = 'toast';
+  el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 3000);
+}
+
+// ─── PWA Install ────────────────────────────────────────────────────────────────
+let deferredInstallPrompt = null;
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  updateInstallBtn();
+});
+
+window.addEventListener('appinstalled', () => {
+  deferredInstallPrompt = null;
+  updateInstallBtn();
+  showToast('Приложение добавлено на главный экран');
+});
+
+function isPwaInstalled() {
+  return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+}
+
+function installPwa() {
+  if (!deferredInstallPrompt) {
+    // Fallback: open instructions
+    showToast('Используйте меню браузера → "Добавить на главный экран"');
+    return;
+  }
+  deferredInstallPrompt.prompt();
+  deferredInstallPrompt.userChoice.then((result) => {
+    if (result.outcome === 'accepted') deferredInstallPrompt = null;
+    updateInstallBtn();
+  });
+}
+
+function updateInstallBtn() {
+  const btn = document.getElementById('installBtn');
+  if (!btn) return;
+  if (isPwaInstalled()) {
+    btn.title = 'Установлено (PWA)';
+    btn.style.display = 'none';
+  } else if (deferredInstallPrompt) {
+    btn.title = 'Добавить на главный экран';
+    btn.style.display = '';
+    btn.classList.add('install-pulse');
+  } else {
+    btn.title = 'Установить приложение';
+    btn.style.display = 'none'; // hide until beforeinstallprompt fires
+  }
+}
+
+// ─── Theme Toggle ────────────────────────────────────────────────────────────────
+const THEME_KEY = 'cashback-beta-theme';
+
+function toggleTheme() {
+  const isLight = document.documentElement.classList.toggle('light');
+  localStorage.setItem(THEME_KEY, isLight ? 'light' : 'dark');
+  document.getElementById('themeIconMoon').style.display = isLight ? 'none' : '';
+  document.getElementById('themeIconSun').style.display = isLight ? '' : 'none';
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.content = isLight ? '#f1f5f9' : '#0f172a';
+}
+
+function initTheme() {
+  const saved = localStorage.getItem(THEME_KEY);
+  if (saved === 'light') {
+    document.documentElement.classList.add('light');
+    document.getElementById('themeIconMoon').style.display = 'none';
+    document.getElementById('themeIconSun').style.display = '';
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.content = '#f1f5f9';
+  }
+}
+
+// ─── Service Worker ──────────────────────────────────────────────────────────────
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').then(reg => {
+    // Auto-update when new version is available
+    reg.addEventListener('updatefound', () => {
+      const newWorker = reg.installing;
+      newWorker.addEventListener('statechange', () => {
+        if (newWorker.state === 'activated') {
+          // Reload to get new version (data is in localStorage, safe)
+          window.location.reload();
+        }
+      });
+    });
+    // If there's a waiting update from previous session, activate it
+    if (reg.waiting) {
+      reg.waiting.postMessage('skipWaiting');
+    }
+    reg.addEventListener('controllerchange', () => {
+      window.location.reload();
+    });
+  }).catch(() => {});
+}
+
+// ─── Embedded COIN Data ─────────────────────────────────────────────────────────
+const EMBEDDED_COINS = [
+  {"coinVersion":"0.9.0","created":"2026-04-01T12:00:00+03:00","provider":{"name":"Сбербанк","website":"https://www.sberbank.ru","notes":"Дебетовая карта с выбором 5 категорий кэшбэка на месяц. Всегда действующий кэшбэк 1% на все покупки."},"cashback":{"entries":[{"category":"Транспорт","percent":10,"notes":[1]},{"category":"СпасибоТревел","percent":5,"limit":3000,"notes":[2]},{"category":"Кино и театр","percent":5,"notes":[1]},{"category":"Одежда и обувь","percent":3,"notes":[1]},{"category":"Товары для дома","percent":3,"notes":[1]},{"category":"Салоны красоты","percent":3,"notes":[1]},{"category":"Медицинские услуги","percent":2,"notes":[1]},{"category":"На все покупки","percent":1,"notes":[3]}]},"notes":[{"id":1,"note":"Категория на выбор (можно выбрать 5 из списка на месяц)."},{"id":2,"note":"Кэшбэк начисляется в бонусах Спасибо, лимит до 3 000 бонусов."},{"id":3,"note":"Всегда действующий кэшбэк при оплате дебетовой картой."}],"links":[{"id":1,"link":"https://www.sberbank.ru/promo/cashback"}]},
+  {"coinVersion":"0.9.0","created":"2026-04-01T12:00:00+03:00","provider":{"name":"ПСБ (Промсвязьбанк)","website":"https://www.psbank.ru","notes":"Дебетовая карта с выбором 3 категорий кэшбэка на месяц. Всегда действующий кэшбэк 1% на все покупки."},"cashback":{"entries":[{"category":"Кафе, рестораны, фастфуд","percent":5,"notes":[1]},{"category":"Такси, каршеринг","percent":5,"notes":[1]},{"category":"Платные дороги","percent":5,"notes":[1]},{"category":"Салоны красоты","percent":5,"notes":[2]},{"category":"Товары для детей","percent":5,"notes":[2]},{"category":"Кино, театры, матчи","percent":5,"notes":[2]},{"category":"Товары для животных","percent":5,"notes":[2]},{"category":"Цветы и подарки","percent":5,"notes":[2]},{"category":"Книги и канцтовары","percent":5,"notes":[2]},{"category":"Общественный транспорт","percent":5,"notes":[2]},{"category":"Магазины Duty Free","percent":5,"notes":[2]},{"category":"Ж/д билеты","percent":5,"notes":[2]},{"category":"Спорттовары","percent":3,"notes":[2]},{"category":"Аптеки, медицина","percent":3,"notes":[2]},{"category":"Косметика и парфюмерия","percent":3,"notes":[2]},{"category":"АЗС","percent":2,"notes":[2]},{"category":"На все покупки","percent":1,"notes":[3]}]},"notes":[{"id":1,"note":"Выбранная категория (выбрано 3 из 3 доступных на месяц)."},{"id":2,"note":"Категория доступна для выбора (можно выбрать 3 из списка на месяц)."},{"id":3,"note":"Всегда действующий кэшбэк на все покупки."}],"links":[{"id":1,"link":"https://www.psbank.ru/Personal/Keshbek"}]},
+  {"coinVersion":"0.9.0","created":"2026-04-01T12:00:00+03:00","provider":{"name":"ВТБ","website":"https://www.vtb.ru","notes":"Дебетовая карта BTB. Выбираемые категории суммируются с всегда действующими. Без подписки BTB Плюс."},"cashback":{"entries":[{"category":"Транспорт","percent":10,"notes":[1]},{"category":"АЗС","percent":5,"notes":[2,3]},{"category":"Здоровье","percent":5,"limit":1000,"notes":[2]},{"category":"Дом и ремонт","percent":5,"limit":1000,"notes":[2]},{"category":"Супермаркеты","percent":1.5,"notes":[2]},{"category":"МЕДСИ","percent":15,"limit":1500,"notes":[4]},{"category":"Tasty Coffee","percent":10,"limit":500,"notes":[5]},{"category":"BTB Pay на все покупки","percent":1,"notes":[6]}]},"notes":[{"id":1,"note":"Временный бонус за хранение остатков. Действует 27.03–25.04."},{"id":2,"note":"Категория на выбор (можно выбрать 4 из списка на месяц). Действующие категории суммируются с выбираемыми."},{"id":3,"note":"Суммируется с временным бонусом 3% за хранение остатков (27.03–25.04), итоговый кэшбэк на АЗС — 8%."},{"id":4,"note":"Спецпредложение: оплата услуг в клиниках МЕДСИ. Кэшбэк до 1 500 ₽ в месяц."},{"id":5,"note":"Спецпредложение: при оплате на сайте и в приложении Tasty Coffee, кроме сертификатов и пополнения внутреннего счёта. Кэшбэк до 500 ₽ в месяц."},{"id":6,"note":"Всегда действующий кэшбэк при оплате смартфоном Android. Условие: сбережения от 50 000 ₽."}],"links":[{"id":1,"link":"https://www.vtb.ru/personal/karty/debetovye-karty/btb/"}]},
+  {"coinVersion":"0.9.0","created":"2026-04-01T12:00:00+03:00","provider":{"name":"Озон Банк","website":"https://www.ozonbank.ru","notes":"Дебетовая карта с выбором 4 категорий кэшбэка на месяц. Всегда действующий кэшбэк 1% на все покупки. Дополнительные категории доступны с Premium-подпиской."},"cashback":{"entries":[{"category":"Tasty Coffee","percent":50,"notes":[1]},{"category":"Искусство","percent":25,"notes":[1]},{"category":"РИВ ГОШ","percent":10,"notes":[1]},{"category":"Аптеки","percent":7,"notes":[1]},{"category":"Яндекс Лавка","percent":7,"notes":[1]},{"category":"Супермаркеты","percent":3,"notes":[1]},{"category":"Такси","percent":5,"notes":[1]},{"category":"Топливо и АЗС","percent":5,"notes":[1]},{"category":"Транспорт","percent":5,"notes":[1]},{"category":"Фастфуд","percent":5,"notes":[1]},{"category":"На все покупки","percent":1,"notes":[2]}]},"notes":[{"id":1,"note":"Категория доступна для выбора (можно выбрать 4 из списка на месяц)."},{"id":2,"note":"Всегда действующий кэшбэк на все покупки. Для добавления 5-й категории требуется Premium-подписка."}],"links":[{"id":1,"link":"https://www.ozonbank.ru/"}]}
+];
+
+// ─── Corporate Colors ───────────────────────────────────────────────────────────
+const BANK_COLORS = {
+  'сбер':           { color: '#21A038', darkChip: false },
+  'сбербанк':       { color: '#21A038', darkChip: false },
+  'втб':            { color: '#002882', darkChip: false },
+  'газпром':        { color: '#0060AC', darkChip: false },
+  'газпромбанк':    { color: '#0060AC', darkChip: false },
+  'альфа':          { color: '#EF3124', darkChip: false },
+  'альфа-банк':     { color: '#EF3124', darkChip: false },
+  'т-банк':         { color: '#FFDD2D', darkChip: true },
+  'тинькофф':       { color: '#FFDD2D', darkChip: true },
+  'т- банк':        { color: '#FFDD2D', darkChip: true },
+  'псб':            { color: '#004899', darkChip: false },
+  'промсвязьбанк':  { color: '#004899', darkChip: false },
+  'росбанк':        { color: '#E30613', darkChip: false },
+  'совкомбанк':     { color: '#00A651', darkChip: false },
+  'райффайзен':     { color: '#FDB913', darkChip: true },
+  'райффайзенбанк': { color: '#FDB913', darkChip: true },
+  'открытие':       { color: '#FF6600', darkChip: false },
+  'озон':           { color: '#7B2D8E', darkChip: false },
+  'озон банк':      { color: '#7B2D8E', darkChip: false },
+};
+const DEFAULT_COLOR = { color: '#64748b', darkChip: false };
+
+function getBankColor(bankName) {
+  const lower = bankName.toLowerCase().replace(/[()]/g, '');
+  // Check full name first, then words
+  for (const key of Object.keys(BANK_COLORS)) {
+    if (lower === key || lower === key.replace(/-/g, '')) return BANK_COLORS[key];
+  }
+  for (const key of Object.keys(BANK_COLORS)) {
+    if (lower.includes(key)) return BANK_COLORS[key];
+  }
+  return DEFAULT_COLOR;
+}
+
+function renderCardIcon(bankName) {
+  const bc = getBankColor(bankName);
+  const isWhite = bc.color === DEFAULT_COLOR.color;
+  const cls = 'card-icon' + (isWhite ? ' white-card' : '') + (bc.darkChip ? ' dark-chip' : '');
+  return '<div class="' + cls + '" style="--bank-color:' + bc.color + '"></div>';
+}
+
+function bankColorStyle(bankName) {
+  return 'color:' + getBankColor(bankName).color;
+}
+
+// ─── State ──────────────────────────────────────────────────────────────────────
+const STORAGE_KEY = 'cashback-beta-app-data';
+const MONTH_NAMES = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+let banks = [];
+let expandedBankId = null;
+let currentTab = 'selected';
+let pendingCoinData = null;
+let pendingImportCoinData = null; // parsed COIN data waiting for bank name confirmation
+
+// ─── Helpers ────────────────────────────────────────────────────────────────────
+function genId() { return Date.now().toString(36) + Math.random().toString(36).substring(2); }
+function getCurrentMonth() { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0'); }
+function formatMonth(m) { const [y,mo] = m.split('-'); return MONTH_NAMES[parseInt(mo)-1] + ' ' + y; }
+const BACKUP_KEY = 'cashback-beta-app-backup';
+function saveData() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({ banks }));
+  // Auto-backup: save selections separately for recovery
+  const selections = {};
+  for (const bank of banks) {
+    if (bank.selectedCategories && bank.selectedCategories.length > 0) {
+      selections[bank.coinData.provider.name] = {
+        s: bank.selectedCategories, m: bank.month,
+        mx: bank.maxSelectable !== undefined && bank.maxSelectable !== null ? bank.maxSelectable : undefined,
+        e: (bank.customExtras && Object.keys(bank.customExtras).length > 0) ? bank.customExtras : undefined,
+        c: (bank.customCategories && bank.customCategories.length > 0) ? bank.customCategories : undefined,
+      };
+    }
+    // Save history for current month
+    const histKey = 'cashback-beta-history-' + bank.coinData.provider.name + '-' + bank.month;
+    const histData = {
+      s: bank.selectedCategories,
+      e: bank.customExtras,
+      c: bank.customCategories,
+      mx: bank.maxSelectable,
+      ex: bank.excludeFromLimit,
+    };
+    localStorage.setItem(histKey, JSON.stringify(histData));
+  }
+  localStorage.setItem(BACKUP_KEY, JSON.stringify(selections));
+}
+function loadData() {
+  try {
+    const s = localStorage.getItem(STORAGE_KEY);
+    if (s) {
+      const p = JSON.parse(s);
+      if (Array.isArray(p.banks) && p.banks.length > 0) {
+        for (const bank of p.banks) {
+          if (!bank.customExtras) bank.customExtras = {};
+          if (!bank.customCategories) bank.customCategories = [];
+        }
+        return p.banks;
+      }
+    }
+  } catch(e) { console.warn('loadData error:', e); }
+  return null;
+}
+function tryRecoverSelections() {
+  try {
+    const backup = localStorage.getItem(BACKUP_KEY);
+    if (!backup) return false;
+    const selections = JSON.parse(backup);
+    const bankNames = Object.keys(selections);
+    if (bankNames.length === 0) return false;
+    let recovered = 0;
+    for (const bank of banks) {
+      const name = bank.coinData.provider.name;
+      if (selections[name]) {
+        const sel = selections[name];
+        const validCats = bank.coinData.cashback.entries.map(e => e.category);
+        const customCats = (sel.c || []).map(c => c.name);
+        const allValid = [...validCats, ...customCats];
+        bank.selectedCategories = (sel.s || []).filter(c => allValid.includes(c));
+        if (sel.m) bank.month = sel.m;
+        if (sel.mx !== undefined) bank.maxSelectable = sel.mx;
+        if (sel.e) bank.customExtras = sel.e;
+        if (sel.c) bank.customCategories = sel.c;
+        recovered += bank.selectedCategories.length;
+      }
+    }
+    if (recovered > 0) { saveData(); showToast('Восстановлено ' + recovered + ' катег. из бэкапа'); return true; }
+  } catch(e) { console.warn('Recovery error:', e); }
+  return false;
+}
+
+function validateCoin(data) {
+  if (!data || typeof data !== 'object') return { valid: false, error: 'Неверный формат данных' };
+  if (typeof data.coinVersion !== 'string') return { valid: false, error: 'Отсутствует coinVersion' };
+  if (typeof data.created !== 'string') return { valid: false, error: 'Отсутствует created' };
+  if (!data.provider || typeof data.provider !== 'object') return { valid: false, error: 'Отсутствует provider' };
+  if (typeof data.provider.name !== 'string') return { valid: false, error: 'Отсутствует provider.name' };
+  if (!data.cashback || typeof data.cashback !== 'object') return { valid: false, error: 'Отсутствует cashback' };
+  if (!Array.isArray(data.cashback.entries)) return { valid: false, error: 'Отсутствует cashback.entries' };
+  for (const e of data.cashback.entries) {
+    if (typeof e.category !== 'string') return { valid: false, error: 'Отсутствует category' };
+    if (typeof e.percent !== 'number') return { valid: false, error: 'Отсутствует percent' };
+  }
+  return { valid: true };
+}
+function percentClass(p) { return p >= 10 ? 'high' : p >= 5 ? 'mid' : p >= 3 ? 'low' : 'lowest'; }
+function escHtml(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+// ─── SVG Icons ──────────────────────────────────────────────────────────────────
+const ICONS = {
+  check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
+  chevUp: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>',
+  chevDown: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>',
+  extLink: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>',
+  refresh: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>',
+  trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>',
+  plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>',
+  download: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>',
+  upload: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>',
+  bolt: '<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>',
+  clipboard: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>',
+  book: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>',
+};
+
+// ─── Dop Categories ─────────────────────────────────────────────────────────────
+let dopBankId = null;
+
+function openDopModal(bankId) {
+  dopBankId = bankId;
+  document.getElementById('dopNewName').value = '';
+  document.getElementById('dopNewPercent').value = '';
+  renderDopModal();
+  document.getElementById('dopModal').classList.remove('hidden');
+}
+
+function closeDopModal() {
+  document.getElementById('dopModal').classList.add('hidden');
+  dopBankId = null;
+  invalidateRecommendation();
+  saveData(); render();
+}
+
+function renderDopModal() {
+  const bank = banks.find(b => b.id === dopBankId);
+  if (!bank) return;
+  document.getElementById('dopBankName').textContent = bank.coinData.provider.name;
+  const extras = bank.customExtras || {};
+  const customs = bank.customCategories || [];
+
+  // Render custom categories list
+  const customList = document.getElementById('dopCustomList');
+  if (customs.length === 0) {
+    customList.innerHTML = '';
+  } else {
+    let html = '';
+    for (const cat of customs) {
+      const escCat = escHtml(cat.name).replace(/'/g, "\\'");
+      html += '<div class="dop-custom-item">';
+      html += '<span class="dop-custom-name">' + escHtml(cat.name) + '</span>';
+      html += '<span class="dop-custom-pct">' + cat.percent + '%</span>';
+      html += '<button class="dop-cat-remove" onclick="removeCustomCat(\'' + cat.id + '\')">×</button>';
+      html += '</div>';
+    }
+    customList.innerHTML = html;
+  }
+
+  // Render COIN categories with extra % inputs
+  const catList = document.getElementById('dopCategoryList');
+  const excludeList = bank.excludeFromLimit || [];
+  const autoExclude = new Set(getAlwaysActiveCats(bank));
+  let html = '';
+  for (const entry of [...bank.coinData.cashback.entries].sort((a, b) => b.percent - a.percent)) {
+    const extra = extras[entry.category] || 0;
+    const escCat = escHtml(entry.category).replace(/'/g, "\\'");
+    const isAutoExcluded = autoExclude.has(entry.category);
+    const isManualExcluded = excludeList.includes(entry.category);
+    const isExcluded = isAutoExcluded || isManualExcluded;
+    html += '<div class="dop-cat-item">';
+    html += '<span class="dop-cat-name">' + escHtml(entry.category) + '</span>';
+    html += '<span class="dop-cat-base">' + entry.percent + '%</span>';
+    html += '<input type="number" class="dop-cat-input" value="' + (extra || '') + '" placeholder="+" min="0" step="0.1" onchange="updateExtraPercent(\'' + escCat + '\', this.value)" onfocus="this.select()">';
+    html += '<span class="dop-cat-base">+</span>';
+    if (extra > 0) html += '<span class="dop-cat-total">= ' + (entry.percent + extra) + '%</span>';
+    html += '<button class="dop-excl-toggle' + (isExcluded ? ' active' : '') + '" onclick="toggleExcludeFromLimit(\'' + escCat + '\')" title="Не входит в лимит">';
+    html += '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13"/></svg>';
+    html += '</button>';
+    if (extra > 0) html += '<button class="dop-cat-remove" onclick="removeExtraPercent(\'' + escCat + '\')">×</button>';
+    html += '</div>';
+  }
+  catList.innerHTML = html;
+}
+
+function updateExtraPercent(category, value) {
+  const bank = banks.find(b => b.id === dopBankId);
+  if (!bank) return;
+  if (!bank.customExtras) bank.customExtras = {};
+  const pct = parseFloat(value) || 0;
+  if (pct > 0) bank.customExtras[category] = pct;
+  else delete bank.customExtras[category];
+  saveData();
+  renderDopModal();
+}
+
+function removeExtraPercent(category) {
+  const bank = banks.find(b => b.id === dopBankId);
+  if (!bank || !bank.customExtras) return;
+  delete bank.customExtras[category];
+  saveData();
+  renderDopModal();
+}
+
+function addCustomCat() {
+  const bank = banks.find(b => b.id === dopBankId);
+  if (!bank) return;
+  const nameEl = document.getElementById('dopNewName');
+  const pctEl = document.getElementById('dopNewPercent');
+  const name = nameEl.value.trim();
+  const percent = parseFloat(pctEl.value);
+  if (!name) { showToast('Введите название'); return; }
+  if (!percent || percent <= 0) { showToast('Введите процент'); return; }
+  // Check collision with COIN categories
+  if (bank.coinData.cashback.entries.find(e => e.category === name)) {
+    showToast('Такая категория уже есть — используйте доп. % ниже'); return;
+  }
+  // Check collision with existing custom categories
+  if ((bank.customCategories || []).find(c => c.name.toLowerCase() === name.toLowerCase())) {
+    showToast('Такая доп. категория уже добавлена'); return;
+  }
+  if (!bank.customCategories) bank.customCategories = [];
+  bank.customCategories.push({ id: genId(), name, percent });
+  nameEl.value = '';
+  pctEl.value = '';
+  saveData();
+  renderDopModal();
+  nameEl.focus();
+}
+
+function removeCustomCat(catId) {
+  const bank = banks.find(b => b.id === dopBankId);
+  if (!bank || !bank.customCategories) return;
+  const cat = bank.customCategories.find(c => c.id === catId);
+  bank.customCategories = bank.customCategories.filter(c => c.id !== catId);
+  // Remove from selectedCategories if present
+  if (cat) {
+    const idx = bank.selectedCategories.indexOf(cat.name);
+    if (idx >= 0) bank.selectedCategories.splice(idx, 1);
+  }
+  saveData();
+  renderDopModal();
+}
+
+function toggleExcludeFromLimit(category) {
+  const bank = banks.find(b => b.id === dopBankId);
+  if (!bank) return;
+  if (!bank.excludeFromLimit) bank.excludeFromLimit = [];
+  const idx = bank.excludeFromLimit.indexOf(category);
+  if (idx >= 0) bank.excludeFromLimit.splice(idx, 1);
+  else bank.excludeFromLimit.push(category);
+  if (bank.excludeFromLimit.length === 0) bank.excludeFromLimit = undefined;
+  invalidateRecommendation();
+  saveData();
+  renderDopModal();
+}
+
+function getEffectivePercent(bank, category) {
+  const entry = bank.coinData.cashback.entries.find(e => e.category === category);
+  if (!entry) return 0;
+  const extra = (bank.customExtras || {})[category] || 0;
+  return entry.percent + extra;
+}
+
+// ─── Category Grouping ─────────────────────────────────────────────────────────
+const CATEGORY_ALIASES = [
+  { substr: 'азс', group: 'АЗС' },
+  { substr: 'топливо', group: 'АЗС' },
+  { substr: 'супермаркет', group: 'Супермаркеты' },
+  { substr: 'продукт', group: 'Супермаркеты' },
+  { substr: 'пятёрочка', group: 'Супермаркеты' },
+  { substr: 'пятерочка', group: 'Супермаркеты' },
+  { substr: 'магнит', group: 'Супермаркеты' },
+  { substr: 'перекрёсток', group: 'Супермаркеты' },
+  { substr: 'дикси', group: 'Супермаркеты' },
+  { substr: 'ресторан', group: 'Рестораны' },
+  { substr: 'кафе', group: 'Рестораны' },
+  { substr: 'фастфуд', group: 'Рестораны' },
+  { substr: 'food', group: 'Рестораны' },
+  { substr: 'аптек', group: 'Аптеки/Медицина' },
+  { substr: 'медицин', group: 'Аптеки/Медицина' },
+  { substr: 'здоровье', group: 'Аптеки/Медицина' },
+  { substr: 'транспорт', group: 'Транспорт' },
+  { substr: 'такси', group: 'Транспорт' },
+  { substr: 'каршеринг', group: 'Транспорт' },
+  { substr: 'одежда', group: 'Одежда' },
+  { substr: 'обувь', group: 'Одежда' },
+  { substr: 'спорт', group: 'Спорт' },
+  { substr: 'кино', group: 'Кино' },
+  { substr: 'театр', group: 'Кино' },
+  { substr: 'книг', group: 'Книги' },
+  { substr: 'связь', group: 'Связь' },
+  { substr: 'телеком', group: 'Связь' },
+  { substr: 'мобильн', group: 'Связь' },
+  { substr: 'дом', group: 'Дом' },
+  { substr: 'ремонт', group: 'Дом' },
+  { substr: 'ювелир', group: 'Ювелирка' },
+  { substr: 'цвет', group: 'Цветы' },
+  { substr: 'финанс', group: 'Финансы' },
+  { substr: 'авто', group: 'Автомобили' },
+  { substr: 'красот', group: 'Красота' },
+  { substr: 'фитнес', group: 'Красота' },
+  { substr: 'парикмахерск', group: 'Красота' },
+  { substr: 'доставк', group: 'Доставка' },
+];
+
+function getCategoryGroup(catName) {
+  const lower = catName.toLowerCase();
+  for (const alias of CATEGORY_ALIASES) {
+    if (lower.includes(alias.substr)) return alias.group;
+  }
+  return null;
+}
+
+// ─── Recommendation Algorithm ──────────────────────────────────────────────────
+
+function getMaxCategories(bank) {
+  // User override takes priority
+  if (bank.maxSelectable !== undefined && bank.maxSelectable !== null) return bank.maxSelectable;
+  // Auto-detect from notes
+  const notes = bank.coinData.notes || [];
+  for (const note of notes) {
+    const m = note.note.match(/можно выбрать\s+(\d+)\s+из/);
+    if (m) return parseInt(m[1]);
+  }
+  return 5;
+}
+
+function isAlwaysActiveCategory(bank, category) {
+  const alwaysActive = new Set(getAlwaysActiveCats(bank));
+  const manualExclude = new Set(bank.excludeFromLimit || []);
+  return alwaysActive.has(category) || manualExclude.has(category);
+}
+
+function getSelectableSelectedCount(bank) {
+  return bank.selectedCategories.filter(cat => !isAlwaysActiveCategory(bank, cat)).length;
+}
+
+function setBankLimit(bankId, value) {
+  const bank = banks.find(b => b.id === bankId);
+  if (!bank) return;
+  if (value === '') { bank.maxSelectable = null; } // reset to auto
+  else { bank.maxSelectable = Math.max(0, parseInt(value) || 0); }
+  invalidateRecommendation();
+  saveData(); render();
+  restoreScroll(saveScrollBeforeRender);
+}
+
+function getAlwaysActiveCats(bank) {
+  const result = [];
+  const notes = bank.coinData.notes || [];
+  for (const note of notes) {
+    if (note.note.toLowerCase().includes('всегда действующий')) {
+      for (const entry of bank.coinData.cashback.entries) {
+        if ((entry.notes || []).includes(note.id)) result.push(entry.category);
+      }
+    }
+  }
+  return result;
+}
+
+function calculateRecommendation() {
+  const bankCaps = {}, bankUsed = {}, alwaysActive = {};
+  for (const bank of banks) {
+    bankCaps[bank.id] = getMaxCategories(bank);
+    bankUsed[bank.id] = new Set(getAlwaysActiveCats(bank));
+    alwaysActive[bank.id] = new Set(getAlwaysActiveCats(bank));
+  }
+  // Collect all categories with their bank options
+  const catGroups = {};
+  for (const bank of banks) {
+    const extras = bank.customExtras || {};
+    for (const entry of bank.coinData.cashback.entries) {
+      const effectivePct = entry.percent + (extras[entry.category] || 0);
+      if (!catGroups[entry.category]) catGroups[entry.category] = [];
+      catGroups[entry.category].push({ bankId: bank.id, percent: effectivePct });
+    }
+    for (const cat of (bank.customCategories || [])) {
+      if (!catGroups[cat.name]) catGroups[cat.name] = [];
+      catGroups[cat.name].push({ bankId: bank.id, percent: cat.percent });
+    }
+  }
+  for (const cat of Object.keys(catGroups)) catGroups[cat].sort((a, b) => b.percent - a.percent);
+
+  // Group categories to avoid duplicates (АЗС + Топливо и АЗС → one group)
+  const processedGroups = new Set();
+  const sortedCats = Object.entries(catGroups).map(([name, opts]) => {
+    const group = getCategoryGroup(name);
+    return { name, opts, maxPct: opts[0].percent, group: group };
+  }).sort((a, b) => b.maxPct - a.maxPct);
+
+  for (const { name, opts, group } of sortedCats) {
+    // Skip always-active (they're already in bankUsed)
+    if (opts.every(o => alwaysActive[o.bankId]?.has(name))) continue;
+    // Skip if group already processed (another category from same group was assigned)
+    if (group && processedGroups.has(group)) continue;
+    for (const opt of opts) {
+      const discUsed = bankUsed[opt.bankId].size - alwaysActive[opt.bankId].size;
+      if (discUsed < bankCaps[opt.bankId]) {
+        bankUsed[opt.bankId].add(name);
+        if (group) processedGroups.add(group);
+        break;
+      }
+    }
+  }
+  return bankUsed;
+}
+
+let _cachedRecommendation = null;
+function getRecommendation() { if (!_cachedRecommendation) _cachedRecommendation = calculateRecommendation(); return _cachedRecommendation; }
+function invalidateRecommendation() { _cachedRecommendation = null; }
+
+// ─── Scroll helpers ──────────────────────────────────────────────────────────────
+function saveScroll() { const el = document.querySelector('.categories-list'); return el ? el.scrollTop : 0; }
+function restoreScroll(pos) { if (pos <= 0) return; requestAnimationFrame(() => { const el = document.querySelector('.categories-list'); if (el) el.scrollTop = pos; }); }
+
+// ─── Tab Switching ─────────────────────────────────────────────────────────────
+// Switch tab button classes + state (without render)
+function switchToTab(tab) {
+  currentTab = tab;
+  document.getElementById('tabSelected').classList.toggle('active', tab === 'selected');
+  document.getElementById('tabBanks').classList.toggle('active', tab === 'banks');
+  document.getElementById('tabMCC').classList.toggle('active', tab === 'mcc');
+}
+
+function switchTab(tab, dir) {
+  if (tab === currentTab) {
+    render();
+    return;
+  }
+  const app = document.getElementById('app');
+  if (dir) {
+    app.classList.add(dir === 'left' ? 'slide-out-left' : 'slide-out-right');
+    setTimeout(() => {
+      switchToTab(tab);
+      app.classList.remove('slide-out-left', 'slide-out-right');
+      app.classList.add(dir === 'left' ? 'slide-out-right' : 'slide-out-left');
+      render();
+      requestAnimationFrame(() => {
+        app.classList.remove('slide-out-left', 'slide-out-right');
+      });
+    }, 130);
+  } else {
+    switchToTab(tab);
+    render();
+  }
+}
+
+// ─── Render ─────────────────────────────────────────────────────────────────────
+function render() {
+  try {
+    const app = document.getElementById('app');
+    if (banks.length === 0) {
+      app.innerHTML = '<div class="empty"><div style="width:64px;height:64px">' + ICONS.download + '</div><p>Нет добавленных банков</p><div style="display:flex;align-items:center;gap:8px"><button class="btn btn-primary" onclick="openImportModal()" style="gap:8px"><span style="width:18px;height:18px">' + ICONS.plus + '</span>Импорт COIN</button><button class="help-btn" onclick="openScreenshotHelp()" title="Импорт из скриншота">?</button></div></div>';
+      return;
+    }
+    if (currentTab === 'selected') renderSelected(app);
+    else if (currentTab === 'banks') renderBanks(app);
+    else if (currentTab === 'mcc') renderMCC(app);
+  } catch (err) {
+    console.error('[render] ERROR:', err);
+    const app = document.getElementById('app');
+    if (app) app.innerHTML = '<div class="empty"><p style="color:var(--red)">⚠ Ошибка рендера: ' + escHtml(err.message) + '</p><button class="btn btn-outline" onclick="clearAll()" style="margin-top:12px">Сбросить данные</button></div>';
+  }
+}
+
+// ─── Render: Selected Panel ─────────────────────────────────────────────────────
+function renderSelected(app) {
+  // Collect all selected categories from all banks
+  const items = [];
+  for (const bank of banks) {
+    const bc = getBankColor(bank.coinData.provider.name);
+    const extras = bank.customExtras || {};
+    for (const catName of bank.selectedCategories) {
+      const entry = bank.coinData.cashback.entries.find(e => e.category === catName);
+      if (entry) {
+        const extra = extras[catName] || 0;
+        items.push({
+          category: entry.category,
+          percent: entry.percent + extra,
+          basePercent: entry.percent,
+          extra: extra,
+          limit: entry.limit,
+          bankName: bank.coinData.provider.name,
+          bankColor: bc.color,
+          bankId: bank.id,
+          isCustom: false,
+        });
+        continue;
+      }
+      // Check custom categories
+      const custom = (bank.customCategories || []).find(c => c.name === catName);
+      if (custom) {
+        items.push({
+          category: custom.name,
+          percent: custom.percent,
+          basePercent: null,
+          extra: 0,
+          limit: undefined,
+          bankName: bank.coinData.provider.name,
+          bankColor: bc.color,
+          bankId: bank.id,
+          isCustom: true,
+        });
+      }
+    }
+  }
+
+  // Sort alphabetically by category, then by bank name
+  items.sort((a, b) => {
+    const cmp = a.category.localeCompare(b.category, 'ru');
+    return cmp !== 0 ? cmp : a.bankName.localeCompare(b.bankName, 'ru');
+  });
+
+  if (items.length === 0) {
+    app.innerHTML = '<div class="sel-empty"><div style="width:56px;height:56px">' + ICONS.check + '</div><p>Нет выбранных категорий.<br>Перейдите на вкладку «Банки», чтобы выбрать категории кэшбэка.</p></div>';
+    return;
+  }
+
+  let html = '<div class="sel-header"><span class="sel-title">Выбранные категории</span><span class="sel-count">' + items.length + ' шт.</span></div>';
+
+  for (const item of items) {
+      const isWhite = item.bankColor === DEFAULT_COLOR.color;
+      const cardCls = 'card-icon' + (isWhite ? ' white-card' : '');
+      html += '<div class="sel-item">';
+      html += renderCardIcon(item.bankName);
+      html += '<div class="sel-item-info"><div class="sel-item-cat">' + escHtml(item.category) + (item.isCustom ? ' <span class="dop-tag">доп.</span>' : '') + '</div>';
+      html += '<div class="sel-item-bank-row"><span class="sel-item-bank" style="' + bankColorStyle(item.bankName) + '">' + escHtml(item.bankName) + '</span>';
+      if (item.limit != null) {
+        html += '<span class="sel-item-limit">до ' + item.limit.toLocaleString('ru-RU') + ' ₽</span>';
+      }
+      html += '</div></div>';
+      html += '<span class="sel-item-pct" style="' + bankColorStyle(item.bankName) + '">' + item.percent + '%' + (item.extra > 0 ? ' <span style="font-size:11px;font-weight:400;opacity:0.6">(' + item.basePercent + '+' + item.extra + ')</span>' : '') + '</span>';
+      html += '</div>';
+  }
+  app.innerHTML = html;
+}
+
+// ─── Render: Banks Panel ────────────────────────────────────────────────────────
+function renderBanks(app) {
+  const isExpanded = expandedBankId !== null;
+  let html = '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">';
+  html += '<span style="font-size:15px;color:var(--text-sec)">Банковские карты</span>';
+  html += '<div style="display:flex;align-items:center;gap:6px">';
+  html += '<button class="btn btn-primary btn-sm" onclick="openImportModal()" style="gap:6px;min-height:36px;padding:6px 12px;font-size:13px"><span style="width:16px;height:16px">' + ICONS.download + '</span>COIN</button>';
+  html += '<button class="help-btn" onclick="openScreenshotHelp()" title="Импорт из скриншота" style="width:36px;height:36px">?</button>';
+  html += '</div></div>';
+  html += '<div class="bank-grid' + (isExpanded ? ' has-expanded' : '') + '">';
+
+  for (const bank of banks) {
+    const isExp = expandedBankId === bank.id;
+    const selCount = bank.selectedCategories.length;
+    const totalCount = bank.coinData.cashback.entries.length;
+    const bc = getBankColor(bank.coinData.provider.name);
+    const isWhite = bc.color === DEFAULT_COLOR.color;
+    const notesMap = {};
+    (bank.coinData.notes || []).forEach(n => { notesMap[n.id] = n.note; });
+    const linksMap = {};
+    (bank.coinData.links || []).forEach(l => { linksMap[l.id] = l.link; });
+
+    const cardCls = 'bank-card' + (isExp ? ' expanded' : selCount > 0 ? ' selected' : ' empty-alert');
+    html += '<div class="' + cardCls + '" style="--bank-color:' + bc.color + '">';
+    html += '<div class="bc-header"><div class="bc-row"><div class="bc-info">';
+    html += renderCardIcon(bank.coinData.provider.name);
+    html += '<div class="bc-text">';
+    html += '<div class="bc-name">' + escHtml(bank.coinData.provider.name) + '</div>';
+    if (bank.coinData.provider.website) {
+      html += '<a href="' + escHtml(bank.coinData.provider.website) + '" target="_blank" rel="noopener noreferrer" class="bc-website"><span style="width:12px;height:12px">' + ICONS.extLink + '</span><span>' + escHtml(bank.coinData.provider.website.replace(/^https?:\/\//, '')) + '</span></a>';
+    }
+    if (bank.coinData.provider.notes) {
+      html += '<div class="bc-desc">' + escHtml(bank.coinData.provider.notes) + '</div>';
+    }
+    const bankMax = getMaxCategories(bank);
+    html += '<div class="bc-count">' + selCount + ' выбрано' + (bankMax > 0 ? ' (лимит ' + bankMax + ')' : '') + '</div>';
+    html += '</div></div><div class="bc-actions">';
+    if (selCount > 0) {
+      html += '<span class="badge" style="background:' + bc.color + '"><span style="width:13px;height:13px">' + ICONS.check + '</span>' + selCount + '</span>';
+    }
+    html += '<button class="btn' + (isExp ? ' btn-primary' : ' btn-outline') + ' btn-sm" onclick="toggleExpand(\'' + bank.id + '\')" style="gap:5px;min-height:36px;padding:6px 12px;font-size:13px"><span style="width:16px;height:16px">' + (isExp ? ICONS.chevUp : ICONS.chevDown) + '</span>' + (isExp ? 'Свернуть' : 'Выбрать') + '</button>';
+    html += '<button class="btn btn-sm btn-danger btn-icon" onclick="deleteBank(\'' + bank.id + '\')" title="Удалить" style="min-height:36px"><span style="width:16px;height:16px">' + ICONS.trash + '</span></button>';
+    html += '</div></div></div>';
+
+    if (isExp) {
+      const rec = getRecommendation()[bank.id] || new Set();
+      const maxCat = getMaxCategories(bank);
+      const selCount = getSelectableSelectedCount(bank);
+      const alwaysActive = new Set(getAlwaysActiveCats(bank));
+      html += '<div class="categories">';
+      html += '<div class="categories-header"><span class="categories-month">' + formatMonth(bank.month) + '</span>';
+      html += '<div style="display:flex;flex-wrap:wrap;gap:6px">';
+      html += '<button class="btn btn-sm btn-primary" onclick="applyRecommendations(\'' + bank.id + '\')" style="gap:4px;min-height:36px;padding:6px 10px;font-size:12px"><span style="width:14px;height:14px">' + ICONS.bolt + '</span>Рекомендации</button>';
+      html += '<button class="btn btn-sm btn-outline" onclick="copyPrevMonth(\'' + bank.id + '\')" style="gap:4px;min-height:36px;padding:6px 10px;font-size:12px"><span style="width:14px;height:14px">' + ICONS.clipboard + '</span>Прошлый</button>';
+      html += '<button class="btn btn-sm btn-outline" onclick="openDopModal(\'' + bank.id + '\')" style="gap:4px;min-height:36px;padding:6px 10px;font-size:12px"><span style="width:14px;height:14px">' + ICONS.plus + '</span>Доп.</button>';
+      html += '<button class="btn btn-sm btn-outline" onclick="newMonth(\'' + bank.id + '\')" style="gap:4px;min-height:36px;padding:6px 10px;font-size:12px"><span style="width:14px;height:14px">' + ICONS.refresh + '</span>Месяц</button>';
+      html += '</div></div>';
+      // Limit bar
+      const limitPct = maxCat > 0 ? Math.min(100, Math.round(selCount / maxCat * 100)) : 0;
+      const limitClass = maxCat === 0 ? '' : selCount >= maxCat ? (selCount > maxCat ? 'over' : 'full') : '';
+      html += '<div class="cat-limit-bar' + (limitClass ? ' ' + limitClass : '') + '">';
+      html += '<span>' + selCount + ' / ' + (maxCat > 0 ? maxCat : '∞') + '</span>';
+      html += '<div class="cat-limit-progress"><div class="cat-limit-progress-fill ' + (maxCat === 0 ? 'ok' : selCount > maxCat ? 'over' : selCount >= maxCat ? 'full' : 'ok') + '" style="width:' + limitPct + '%"></div></div>';
+      html += '<div class="cat-limit-controls">';
+      html += '<button class="cat-limit-btn" onclick="event.stopPropagation();setBankLimit(\'' + bank.id + '\',' + (maxCat - 1) + ')"' + (maxCat <= 0 ? ' disabled' : '') + '>−</button>';
+      html += '<span class="cat-limit-value">' + (maxCat > 0 ? maxCat : '∞') + '</span>';
+      html += '<button class="cat-limit-btn" onclick="event.stopPropagation();setBankLimit(\'' + bank.id + '\',' + (maxCat + 1) + ')">+</button>';
+      html += '</div>';
+      html += '<span class="cat-limit-label">' + (maxCat > 0 ? 'лимит' : 'без лимита') + '</span>';
+      html += '</div>';
+      html += '<div class="categories-list">';
+
+      const limitReached = maxCat > 0 && selCount >= maxCat;
+      const bankExtras = bank.customExtras || {};
+      for (const entry of [...bank.coinData.cashback.entries].sort((a, b) => b.percent - a.percent)) {
+        const isSel = bank.selectedCategories.includes(entry.category);
+        const isRec = rec.has(entry.category);
+        const isAlways = isAlwaysActiveCategory(bank, entry.category);
+        const isDisabled = !isSel && limitReached && !isAlways;
+        const extra = bankExtras[entry.category] || 0;
+        const effectivePct = entry.percent + extra;
+        const entryNotes = (entry.notes || []).map(nid => notesMap[nid]).filter(Boolean);
+        const entryLinks = (entry.links || []).map(lid => linksMap[lid]).filter(Boolean);
+        const escCat = escHtml(entry.category).replace(/'/g, "\\'");
+
+        html += '<div class="cat-row' + (isSel ? ' checked' : '') + (isRec ? ' recommended' : '') + (isDisabled ? ' disabled' : '') + (isAlways ? ' excluded' : '') + '"' + (isDisabled ? '' : ' onclick="toggleCat(\'' + bank.id + '\',\'' + escCat + '\')"') + '>';
+        html += '<div class="cat-checkbox">' + ICONS.check + '</div>';
+        html += '<div class="cat-info"><div class="cat-name">' + escHtml(entry.category) + (isRec ? ' <span style="display:inline-flex;align-items:center;vertical-align:middle;margin-left:4px;color:#eab308;width:14px;height:14px">' + ICONS.bolt + '</span>' : '') + (extra > 0 ? ' <span class="dop-tag">доп. +' + extra + '%</span>' : '') + (isAlways && !isSel ? ' <span class="dop-tag">не в лимите</span>' : '') + '</div>';
+        html += '<div class="cat-details"><span class="cat-percent ' + percentClass(effectivePct) + '">' + effectivePct + '%' + (extra > 0 ? ' <span style="font-size:11px;font-weight:400;color:var(--text-muted)">(' + entry.percent + '+' + extra + ')</span>' : '') + '</span>';
+        if (entry.limit != null) {
+          html += '<span class="cat-limit">до ' + entry.limit.toLocaleString('ru-RU') + ' ₽/мес</span>';
+        }
+        html += '</div></div>';
+        if (entryNotes.length > 0 || entryLinks.length > 0) {
+          html += '<button class="cat-note-toggle" onclick="event.stopPropagation();toggleNotes(this)"><span style="width:18px;height:18px">' + ICONS.chevDown + '</span></button>';
+        }
+        html += '</div>';
+        if (entryNotes.length > 0 || entryLinks.length > 0) {
+          html += '<div class="cat-notes-box" style="display:none">';
+          for (const note of entryNotes) html += '<div class="cat-note-text">💡 ' + escHtml(note) + '</div>';
+          for (const link of entryLinks) html += '<a href="' + escHtml(link) + '" target="_blank" rel="noopener noreferrer" class="cat-note-link"><span style="width:12px;height:12px">' + ICONS.extLink + '</span>' + escHtml(link) + '</a>';
+          html += '</div>';
+        }
+      }
+      // Custom categories
+      const customs = bank.customCategories || [];
+      for (const cat of customs.sort((a, b) => b.percent - a.percent)) {
+        const isSel = bank.selectedCategories.includes(cat.name);
+        const isRec = rec.has(cat.name);
+        const isDisabled = !isSel && limitReached;
+        const escCat = escHtml(cat.name).replace(/'/g, "\\'");
+        html += '<div class="cat-row' + (isSel ? ' checked' : '') + (isRec ? ' recommended' : '') + (isDisabled ? ' disabled' : '') + '"' + (isDisabled ? '' : ' onclick="toggleCat(\'' + bank.id + '\',\'' + escCat + '\')"') + '>';
+        html += '<div class="cat-checkbox">' + ICONS.check + '</div>';
+        html += '<div class="cat-info"><div class="cat-name">' + escHtml(cat.name) + ' <span class="dop-tag">доп.</span>' + (isRec ? ' <span style="display:inline-flex;align-items:center;vertical-align:middle;margin-left:4px;color:#eab308;width:14px;height:14px">' + ICONS.bolt + '</span>' : '') + '</div>';
+        html += '<div class="cat-details"><span class="cat-percent ' + percentClass(cat.percent) + '">' + cat.percent + '%</span>';
+        html += '</div></div>';
+      }
+      html += '</div></div>';
+    }
+    html += '</div>';
+  }
+  html += '</div>';
+  app.innerHTML = html;
+}
+
+// ─── Actions ────────────────────────────────────────────────────────────────────
+let saveScrollBeforeRender = 0;
+
+function toggleCat(bankId, category) {
+  saveScrollBeforeRender = saveScroll();
+  const bank = banks.find(b => b.id === bankId);
+  if (!bank) return;
+  const idx = bank.selectedCategories.indexOf(category);
+  if (idx >= 0) {
+    bank.selectedCategories.splice(idx, 1);
+  } else {
+    // Check limit (only for selectable categories, not always-active)
+    const maxCat = getMaxCategories(bank);
+    if (maxCat > 0 && !isAlwaysActiveCategory(bank, category)) {
+      const selCount = getSelectableSelectedCount(bank);
+      if (selCount >= maxCat) {
+        showToast('Лимит ' + maxCat + ' категорий достигнут');
+        restoreScroll(saveScrollBeforeRender);
+        return;
+      }
+    }
+    bank.selectedCategories.push(category);
+  }
+  bank.updatedAt = new Date().toISOString();
+  invalidateRecommendation();
+  saveData(); render(); updateBadge();
+  restoreScroll(saveScrollBeforeRender);
+}
+
+function toggleExpand(bankId) {
+  expandedBankId = expandedBankId === bankId ? null : bankId;
+  render();
+}
+
+function newMonth(bankId) {
+  const bank = banks.find(b => b.id === bankId);
+  if (!bank) return;
+  bank.selectedCategories = [];
+  bank.month = getCurrentMonth();
+  bank.updatedAt = new Date().toISOString();
+  saveData(); render(); updateBadge();
+}
+
+function deleteBank(bankId) {
+  banks = banks.filter(b => b.id !== bankId);
+  if (expandedBankId === bankId) expandedBankId = null;
+  saveData(); render(); updateBadge();
+}
+
+function toggleNotes(btn) {
+  const box = btn.parentElement.nextElementSibling;
+  if (!box || !box.classList.contains('cat-notes-box')) return;
+  const shown = box.style.display !== 'none';
+  box.style.display = shown ? 'none' : 'flex';
+  btn.innerHTML = '<span style="width:18px;height:18px">' + (shown ? ICONS.chevDown : ICONS.chevUp) + '</span>';
+}
+
+// ─── Import COIN ────────────────────────────────────────────────────────────────
+function openImportModal() {
+  document.getElementById('importModal').classList.remove('hidden');
+  document.getElementById('importError').classList.add('hidden');
+  document.getElementById('importBankNameError').classList.add('hidden');
+  document.getElementById('pasteText').value = '';
+  pendingImportCoinData = null;
+  switchImportTab('file');
+  showImportStep1();
+}
+function closeImportModal() {
+  document.getElementById('importModal').classList.add('hidden');
+  pendingImportCoinData = null;
+}
+function showImportStep1() {
+  document.getElementById('importStep1').style.display = '';
+  document.getElementById('importStep2').style.display = 'none';
+  document.getElementById('importBackBtn').style.display = 'none';
+  document.getElementById('importConfirmBtn').style.display = 'none';
+  document.getElementById('importDesc').textContent = 'Загрузите файл COIN 0.9.0 или вставьте JSON текст';
+}
+function showImportStep2(coinData) {
+  document.getElementById('importStep1').style.display = 'none';
+  document.getElementById('importStep2').style.display = '';
+  document.getElementById('importBackBtn').style.display = '';
+  document.getElementById('importConfirmBtn').style.display = '';
+  document.getElementById('importBankNameError').classList.add('hidden');
+  document.getElementById('importDesc').textContent = 'Проверьте и подтвердите';
+
+  // Fill bank name datalist with existing banks + embedded
+  const dl = document.getElementById('bankNameList');
+  dl.innerHTML = '';
+  const allNames = new Set();
+  for (const b of banks) allNames.add(b.coinData.provider.name);
+  for (const e of EMBEDDED_COINS) allNames.add(e.provider.name);
+  for (const name of allNames) {
+    const opt = document.createElement('option');
+    opt.value = name; dl.appendChild(opt);
+  }
+
+  // Set bank name input
+  const nameInput = document.getElementById('importBankName');
+  const detectedName = coinData.provider.name || '';
+  nameInput.value = detectedName;
+  nameInput.classList.toggle('import-input-warn', !detectedName);
+
+  // Show preview: category count
+  const entries = coinData.cashback.entries || [];
+  const preview = document.getElementById('importPreview');
+  let pHtml = '<div style="margin-top:10px;padding:10px 12px;background:var(--bg-input);border-radius:var(--radius-sm);border:1px solid var(--border)">';
+  pHtml += '<div style="font-weight:500;color:var(--text);margin-bottom:4px">' + entries.length + ' ' + pluralCategory(entries.length) + '</div>';
+  if (coinData.provider.website) pHtml += '<div style="font-size:12px;opacity:0.7;margin-top:2px">' + escHtml(coinData.provider.website) + '</div>';
+  if (coinData.provider.notes) pHtml += '<div style="font-size:12px;opacity:0.7;margin-top:2px">' + escHtml(coinData.provider.notes) + '</div>';
+  if (entries.length > 0) {
+    const top3 = entries.slice().sort((a,b) => b.percent - a.percent).slice(0, 3);
+    pHtml += '<div style="margin-top:8px;font-size:12px;color:var(--text-sec)">Топ: ' + top3.map(e => escHtml(e.category) + ' ' + e.percent + '%').join(', ') + '</div>';
+  }
+  pHtml += '</div>';
+  preview.innerHTML = pHtml;
+
+  // Focus if name empty
+  if (!detectedName) nameInput.focus();
+}
+function pluralCategory(n) {
+  const m = n % 10; const h = n % 100;
+  if (h >= 11 && h <= 19) return 'категорий';
+  if (m === 1) return 'категория';
+  if (m >= 2 && m <= 4) return 'категории';
+  return 'категорий';
+}
+function switchImportTab(mode) {
+  document.getElementById('tabFile').classList.toggle('active', mode === 'file');
+  document.getElementById('tabPaste').classList.toggle('active', mode === 'paste');
+  document.getElementById('importFileZone').style.display = mode === 'file' ? '' : 'none';
+  document.getElementById('importPasteZone').style.display = mode === 'paste' ? '' : 'none';
+  document.getElementById('importError').classList.add('hidden');
+}
+function showImportError(msg) { const el = document.getElementById('importError'); el.textContent = msg; el.classList.remove('hidden'); }
+
+function handleFileUpload(event) {
+  const file = event.target.files && event.target.files[0]; if (!file) return;
+  document.getElementById('importError').classList.add('hidden');
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const coinData = JSON.parse(e.target.result);
+      previewCoinImport(coinData);
+    } catch(err) { showImportError('Не удалось прочитать файл.'); }
+  };
+  reader.readAsText(file); event.target.value = '';
+}
+
+function handlePasteImport() {
+  const text = document.getElementById('pasteText').value.trim();
+  if (!text) { showImportError('Вставьте JSON текст'); return; }
+  try { previewCoinImport(JSON.parse(text)); } catch(err) { showImportError('Неверный формат JSON'); }
+}
+
+function previewCoinImport(coinData) {
+  const v = validateCoin(coinData);
+  if (!v.valid) { showImportError(v.error); return; }
+  pendingImportCoinData = coinData;
+  showImportStep2(coinData);
+}
+
+function importBack() {
+  pendingImportCoinData = null;
+  showImportStep1();
+}
+
+function confirmImport() {
+  if (!pendingImportCoinData) return;
+  const bankName = document.getElementById('importBankName').value.trim();
+  if (!bankName) {
+    document.getElementById('importBankNameError').classList.remove('hidden');
+    document.getElementById('importBankName').classList.add('import-input-warn');
+    document.getElementById('importBankName').focus();
+    return;
+  }
+  // Override provider name with user input
+  const coinData = JSON.parse(JSON.stringify(pendingImportCoinData));
+  coinData.provider.name = bankName;
+  pendingImportCoinData = null;
+  processImport(coinData);
+}
+
+function processImport(coinData) {
+  const v = validateCoin(coinData);
+  if (!v.valid) { showImportError(v.error); return; }
+  const existing = banks.find(b => b.coinData.provider.name === coinData.provider.name);
+  if (existing) {
+    pendingCoinData = coinData;
+    closeImportModal();
+    document.getElementById('dupBankName').textContent = 'Банк «' + coinData.provider.name + '» уже добавлен.';
+    document.getElementById('duplicateModal').classList.remove('hidden');
+    return;
+  }
+  // No duplicate — add directly
+  closeImportModal();
+  const newBank = addBank(coinData);
+  expandedBankId = newBank.id;
+  switchToTab('banks');
+  render();
+}
+
+function addBank(coinData, keepSelections, oldBank) {
+  const now = new Date().toISOString();
+  const bank = { id: genId(), coinData, selectedCategories: [], addedAt: now, updatedAt: now, month: getCurrentMonth() };
+  if (keepSelections && oldBank) {
+    bank.selectedCategories = oldBank.selectedCategories.filter(cat => {
+      const o = oldBank.coinData.cashback.entries.find(e => e.category === cat);
+      const n = coinData.cashback.entries.find(e => e.category === cat);
+      return o && n && o.percent === n.percent;
+    });
+  }
+  banks.push(bank); saveData();
+  return bank;
+}
+
+function handleDuplicate(action) {
+  if (!pendingCoinData || action === 'cancel') { pendingCoinData = null; document.getElementById('duplicateModal').classList.add('hidden'); return; }
+  const existing = banks.find(b => b.coinData.provider.name === pendingCoinData.provider.name);
+  let newBank = null;
+  if (action === 'replace') {
+    banks = banks.filter(b => b.coinData.provider.name !== pendingCoinData.provider.name);
+    newBank = addBank(pendingCoinData, false, null);
+  } else if (action === 'keep' && existing) {
+    banks = banks.filter(b => b.coinData.provider.name !== pendingCoinData.provider.name);
+    newBank = addBank(pendingCoinData, true, existing);
+  }
+  pendingCoinData = null;
+  document.getElementById('duplicateModal').classList.add('hidden');
+  if (newBank) {
+    expandedBankId = newBank.id;
+    switchToTab('banks');
+  }
+  render();
+}
+
+// ─── Export / Import Backup ─────────────────────────────────────────────────────
+function exportBackup() {
+  const blob = new Blob([JSON.stringify({ banks }, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'cashback-backup-' + new Date().toISOString().slice(0,10) + '.json';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(a.href);
+}
+
+function importBackup() {
+  const input = document.createElement('input'); input.type = 'file'; input.accept = '.json';
+  input.onchange = function(e) {
+    const file = e.target.files && e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+      try {
+        const data = JSON.parse(ev.target.result);
+        if (data.banks && Array.isArray(data.banks)) {
+          for (const bank of data.banks) { const v = validateCoin(bank.coinData); if (!v.valid) { alert('Ошибка: ' + v.error); return; } }
+          banks = data.banks; saveData(); expandedBankId = null; render();
+        } else alert('Неверный формат файла');
+      } catch(err) { alert('Не удалось прочитать файл'); }
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+}
+
+// ─── Screenshot Import Help ─────────────────────────────────────────────────────
+function openScreenshotHelp() {
+  document.getElementById('screenshotHelpModal').classList.remove('hidden');
+}
+function closeScreenshotHelp() {
+  document.getElementById('screenshotHelpModal').classList.add('hidden');
+}
+function copyScreenshotPrompt() {
+  const text = document.getElementById('screenshotPrompt').value;
+  navigator.clipboard.writeText(text).then(() => {
+    showToast('Промпт скопирован');
+    const btn = document.querySelector('.screenshot-copy-btn');
+    if (btn) {
+      btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Скопировано';
+      btn.style.borderColor = 'var(--green)';
+      btn.style.color = 'var(--green)';
+      setTimeout(() => {
+        btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> Копировать';
+        btn.style.borderColor = '';
+        btn.style.color = '';
+      }, 2000);
+    }
+  }).catch(() => {
+    // Fallback for older browsers
+    const el = document.getElementById('screenshotPrompt');
+    el.select();
+    document.execCommand('copy');
+    showToast('Промпт скопирован');
+  });
+}
+function toggleScreenshotExample() {
+  const el = document.getElementById('screenshotExample');
+  const btn = document.getElementById('exampleToggle');
+  const isOpen = el.classList.toggle('show');
+  btn.classList.toggle('open', isOpen);
+}
+
+// ─── Clear ──────────────────────────────────────────────────────────────────────
+function openClearModal() { document.getElementById('clearModal').classList.remove('hidden'); }
+function closeClearModal() { document.getElementById('clearModal').classList.add('hidden'); }
+function clearAll() { banks = []; expandedBankId = null; localStorage.removeItem(STORAGE_KEY); closeClearModal(); render(); clearBadge(); }
+
+// ─── Close modals on overlay click ──────────────────────────────────────────────
+document.querySelectorAll('.overlay').forEach(overlay => {
+  overlay.addEventListener('click', function(e) { if (e.target === this) { this.classList.add('hidden'); pendingCoinData = null; } });
+});
+
+// ─── Swipe Gesture ──────────────────────────────────────────────────────────────
+(function initSwipe() {
+  let startX = 0, startY = 0, isHorizontal = null;
+  const THRESHOLD = 80;
+  const LOCK_THRESHOLD = 12;
+
+  document.addEventListener('touchstart', function(e) {
+    // Don't detect swipes on modals, tab bar, header, or expanded bank categories
+    if (e.target.closest('.overlay:not(.hidden)') || e.target.closest('.tab-bar') || e.target.closest('.header')) return;
+    // Don't swipe when a bank card is expanded (user is interacting with categories)
+    if (expandedBankId !== null && e.target.closest('.bank-card.expanded')) return;
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+    isHorizontal = null;
+  }, { passive: true });
+
+  document.addEventListener('touchmove', function(e) {
+    if (startX === 0 && startY === 0) return;
+    const dx = e.touches[0].clientX - startX;
+    const dy = Math.abs(e.touches[0].clientY - startY);
+
+    if (isHorizontal === null && (Math.abs(dx) > LOCK_THRESHOLD || dy > LOCK_THRESHOLD)) {
+      isHorizontal = Math.abs(dx) > dy;
+    }
+  }, { passive: true });
+
+  document.addEventListener('touchend', function(e) {
+    if (!isHorizontal) { startX = 0; startY = 0; return; }
+    const dx = e.changedTouches[0].clientX - startX;
+    startX = 0; startY = 0; isHorizontal = null;
+
+    if (Math.abs(dx) < THRESHOLD) return;
+
+    const tabs = ['selected', 'banks', 'mcc'];
+    const currentIdx = tabs.indexOf(currentTab);
+    if (dx < -THRESHOLD && currentIdx < tabs.length - 1) {
+      switchTab(tabs[currentIdx + 1], 'left');
+    } else if (dx > THRESHOLD && currentIdx > 0) {
+      switchTab(tabs[currentIdx - 1], 'right');
+    }
+  }, { passive: true });
+})();
+
+// ─── MCC Reference ──────────────────────────────────────────────────────────────
+const MCC_DATA = [
+  { group: 'АЗС', codes: [
+    [5541, 'Автозаправочные станции (АЗС)'],
+    [5542, 'Автоматические заправочные станции (без обслуживания)'],
+  ]},
+  { group: 'Супермаркеты', codes: [
+    [5411, 'Супермаркеты / продуктовые магазины'],
+    [5422, 'Магазины свободной торговли (дискаунтеры)'],
+    [5441, 'Молочные продукты / молочные магазины'],
+    [5451, 'Мясные / рыбные магазины'],
+    [5462, 'Пекарни / кондитерские'],
+    [5499, 'Продовольственные магазины (прочие)'],
+  ]},
+  { group: 'Рестораны', codes: [
+    [5811, 'Рестораны (полный сервис)'],
+    [5812, 'Рестораны быстрого питания'],
+    [5813, 'Напитки / бары'],
+    [5814, 'Фастфуд'],
+    [5815, 'Кафе / закусочные'],
+  ]},
+  { group: 'Аптеки/Медицина', codes: [
+    [5912, 'Аптеки'],
+    [5921, 'Лицензированные аптеки (без рецепта)'],
+    [5970, 'Художественные / ремесленные магазины'],
+    [5971, 'Художественные галереи'],
+    [7299, 'Медицинские услуги (прочие)'],
+    [8011, 'Врачи / стоматологи'],
+    [8021, 'Стоматологи / ортодонты'],
+    [8031, 'Остеопаты'],
+    [8041, 'Хиропрактики'],
+    [8042, 'Оптики / офтальмологи'],
+    [8043, 'Оптика (продажа очков)'],
+    [8044, 'Оптометристы'],
+    [8049, 'Специалисты здравоохранения (прочие)'],
+    [8050, 'Дом престарелых / сестринский уход'],
+    [8062, 'Больницы'],
+    [8071, 'Лаборатории (мед.)'],
+    [8099, 'Медицинские услуги (прочие)'],
+  ]},
+  { group: 'Транспорт', codes: [
+    [4011, 'Железные дороги (региональные)'],
+    [4111, 'Транспорт / железные дороги'],
+    [4121, 'Такси / лимузины'],
+    [4131, 'Автобусы / маршрутки'],
+    [4214, 'Грузоперевозки / курьеры'],
+    [4511, 'Авиакомпании / авиалинии'],
+    [4582, 'Аэропорты / аэровокзалы'],
+    [4784, 'Платные дороги / мосты / тоннели'],
+    [4789, 'Транспортные услуги (прочие)'],
+  ]},
+  { group: 'Одежда', codes: [
+    [5611, 'Мужская одежда'],
+    [5621, 'Женская одежда'],
+    [5631, 'Детская одежда'],
+    [5641, 'Магазины женских аксессуаров'],
+    [5651, 'Семейные магазины одежды'],
+    [5661, 'Обувные магазины'],
+  ]},
+  { group: 'Спорт/Фитнес', codes: [
+    [5940, 'Велосипедные магазины'],
+    [5941, 'Спортивные товары'],
+    [5945, 'Спортивные товары / велосипеды'],
+    [5946, 'Кемпинг / туризм'],
+    [7911, 'Танцевальные студии'],
+    [7933, 'Боулинг'],
+    [7941, 'Спортивные клубы / поля для гольфа'],
+    [7992, 'Гольф-клубы'],
+    [7993, 'Фитнес-клубы / спортзалы'],
+    [7994, 'Спортивные залы / фитнес'],
+    [7995, 'Бильярд / пул'],
+    [7996, 'Клубы (membership)'],
+    [7997, 'Клубы (общественные)'],
+    [7998, 'Аквапарки / водные развлечения'],
+    [7999, 'Развлекательные / спортивные услуги (прочие)'],
+  ]},
+  { group: 'Кино/Развлечения', codes: [
+    [7829, 'Видеопрокат'],
+    [7832, 'Кинотеатры'],
+    [7841, 'Видеосалоны (прокат)'],
+    [7922, 'Театры / симфонические оркестры'],
+    [7929, 'Развлекательные услуги (прочие)'],
+    [7991, 'Туристические / горнолыжные курорты'],
+  ]},
+  { group: 'Книги', codes: [
+    [5942, 'Книжные магазины'],
+    [5994, 'Газетные киоски'],
+  ]},
+  { group: 'Животные', codes: [
+    [5995, 'Зоомагазины'],
+  ]},
+  { group: 'Связь', codes: [
+    [4812, 'Телекоммуникационное оборудование / услуги'],
+    [4813, 'Услуги связи (пейджеры, сотовые)'],
+    [4814, 'Услуги связи (прочие)'],
+    [4899, 'Кабельное / спутниковое ТВ'],
+  ]},
+  { group: 'Дом/Электроника', codes: [
+    [5200, 'Строительные материалы / лесопиломатериалы'],
+    [5211, 'Строительные материалы (лес, строймат.)'],
+    [5231, 'Стеклянные / зеркальные / витринные магазины'],
+    [5251, 'Железные / сантехнические товары'],
+    [5261, 'Номерные / скобяные магазины'],
+    [5712, 'Магазины электротоваров / радио'],
+    [5713, 'Магазины бытовой электроники'],
+    [5714, 'Магазины компьютеров / ПО'],
+    [5718, 'Магазины бытовой техники'],
+    [5719, 'Магазины электротоваров (прочие)'],
+    [5722, 'Магазины бытовых товаров'],
+    [5732, 'Электронное оборудование'],
+    [5733, 'Магазины музыкальных инструментов'],
+    [5734, 'Магазины компьютерного ПО'],
+    [5735, 'Магазины аудио / видео'],
+  ]},
+  { group: 'Ювелирка', codes: [
+    [5094, 'Драгоценные камни / ювелирные изделия'],
+    [5944, 'Часы / часы-ручки / ювелирные магазины'],
+  ]},
+  { group: 'Цветы/Табак', codes: [
+    [5992, 'Цветочные магазины'],
+    [5993, 'Сигарные магазины'],
+  ]},
+  { group: 'Финансы', codes: [
+    [6010, 'Банки / финансовые институты (снятие наличных)'],
+    [6011, 'Банки / финансовые институты (покупки)'],
+    [6051, 'Некоммерческие финансовые институты'],
+    [6211, 'Ценные бумаги / брокеры'],
+    [6300, 'Страховые продажи / андеррайтинг'],
+    [6511, 'Недвижимость (покупка/продажа)'],
+    [6529, 'Удалённая аренда'],
+    [6530, 'Услуги по недвижимости'],
+  ]},
+  { group: 'Недвижимость', codes: [
+    [6531, 'Квартирное бюро (риелторы)'],
+    [6532, 'Агенты по продаже недвижимости'],
+    [6533, 'Агенты по аренде недвижимости'],
+    [6538, 'Аукционы недвижимости'],
+    [6540, 'Управление недвижимостью'],
+    [7011, 'Аренда недвижимости (долгосрочная)'],
+    [7012, 'Таймшер'],
+  ]},
+  { group: 'Автомобили', codes: [
+    [5511, 'Автодилеры / магазины новых авто'],
+    [5532, 'Автомагазины (шины)'],
+    [5533, 'Автомобильные запчасти / аксессуары'],
+    [7512, 'Аренда автомобилей'],
+    [7513, 'Аренда грузовиков'],
+    [7519, 'Моторные дома / трейлеры (аренда)'],
+    [7523, 'Стоянки / гаражи'],
+    [7531, 'Автосервисы / СТО'],
+    [7534, 'Шиномонтаж / ремонт шин'],
+    [7535, 'Автомойки'],
+    [7538, 'Автосервисы (прочие)'],
+    [7542, 'Мойка самообслуживания'],
+    [7549, 'Автосервисы (общие)'],
+  ]},
+  { group: 'Красота', codes: [
+    [7230, 'Парикмахерские / салоны красоты'],
+    [7298, 'Салоны красоты / парикмахерские'],
+    [7299, 'Салоны красоты / фитнес (прочие)'],
+  ]},
+  { group: 'Доставка/Маркетинг', codes: [
+    [4215, 'Курьерские услуги'],
+    [4225, 'Склады / хранение'],
+    [5960, 'Прямой маркетинг — страхование'],
+    [5961, 'Прямой маркетинг — каталог'],
+    [5962, 'Прямой маркетинг — потребительские товары'],
+    [5963, 'Прямой маркетинг — туризм'],
+    [5964, 'Прямой маркетинг — подписки'],
+    [5965, 'Прямой маркетинг — оптовая торговля'],
+    [5966, 'Прямой маркетинг — страхование 2'],
+    [5967, 'Прямой маркетинг — розничная торговля'],
+    [5968, 'Прямой маркетинг — услуги'],
+    [5969, 'Прямой маркетинг (прочие)'],
+    [7311, 'Службы доставки (прочие)'],
+  ]},
+  { group: 'Ремонт', codes: [
+    [7622, 'Ремонт бытовой техники'],
+    [7623, 'Ремонт кондиционеров'],
+    [7629, 'Ремонт электрооборудования'],
+    [7631, 'Часовые мастерские'],
+    [7641, 'Мебельные мастерские'],
+    [7692, 'Сварочные мастерские'],
+    [7699, 'Ремонт (прочее)'],
+    [7379, 'Услуги по ремонту ПК'],
+  ]},
+  { group: 'Бытовые услуги', codes: [
+    [7210, 'Прачечные / химчистки'],
+    [7211, 'Прачечные (самообслуживание)'],
+    [7216, 'Химчистки / прачечные'],
+    [7277, 'Клубы здоровья / бани'],
+    [7280, 'Информационные услуги'],
+    [7332, 'Полотёрные услуги (ковры, обои)'],
+    [7338, 'Услуги по вывозу мусора'],
+    [7339, 'Услуги по уборке / обслуживанию'],
+    [7349, 'Услуги по уборке (прочие)'],
+  ]},
+  { group: 'Бизнес-услуги', codes: [
+    [7296, 'Магазины одежды (прочие)'],
+    [7297, 'Магазины массажных салонов'],
+    [7361, 'Услуги по работе / найму'],
+    [7372, 'Услуги программирования'],
+    [7375, 'Услуги по аренде (прочие)'],
+    [7392, 'Аналитические услуги'],
+    [7393, 'Детективные / охранные услуги'],
+    [7394, 'Услуги аренды оборудования'],
+    [7395, 'Услуги фото / копировальные'],
+    [7399, 'Бизнес-услуги (прочие)'],
+  ]},
+  { group: 'Образование', codes: [
+    [8211, 'Начальные / средние школы'],
+    [8220, 'Колледжи / университеты'],
+    [8241, 'Коррекционные школы'],
+    [8244, 'Школы бизнеса / секретарские'],
+    [8249, 'Образование (прочее)'],
+    [8299, 'Образовательные услуги (прочие)'],
+    [8351, 'Дошкольные учреждения / ясли'],
+  ]},
+  { group: 'Государственные', codes: [
+    [4900, 'Службы коммунального обслуживания'],
+    [8398, 'Благотворительные и социальные организации'],
+    [8675, 'Автомобильные ассоциации'],
+    [8699, 'Профессиональные организации'],
+    [8999, 'Государственные услуги (прочие)'],
+    [9211, 'Судебные издержки / алименты'],
+    [9222, 'Штрафы'],
+    [9223, 'Налоги / сборы'],
+    [9311, 'Налоги'],
+    [9400, 'Внутренние правительственные доходы'],
+    [9402, 'Платежи (прочие)'],
+    [9950, 'Внутренние правительственные закупки'],
+  ]},
+  { group: 'Прочее', codes: [
+    [4722, 'Туристические агентства'],
+    [4723, 'Туристические агентства (оптовые)'],
+    [4732, 'Турагентства'],
+    [5192, 'Садовые магазины / питомники'],
+    [5193, 'Магазины цветов / теплицы'],
+    [5198, 'Товары для дома (прочие)'],
+    [5271, 'Мобильные дома / автодома'],
+    [5999, 'Розничные магазины (прочие)'],
+    [7221, 'Фотостудии'],
+    [7276, 'Агентства знакомств'],
+    [7342, 'Экзаменаторы (огнестрельное оружие)'],
+  ]},
+];
+
+let mccSearchQuery = '';
+let mccExpandedGroups = new Set();
+
+function renderMCC(app) {
+  let html = '<div style="display:flex;flex-direction:column;gap:12px">';
+  html += '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px">';
+  html += '<span style="font-size:15px;color:var(--text-sec)">Справочник MCC</span>';
+  html += '<span style="font-size:11px;color:var(--text-muted)">' + countMCCTotal() + ' кодов</span>';
+  html += '</div>';
+  html += '<div class="dop-new-row" style="margin-bottom:0;padding-bottom:12px;border-bottom:none">';
+  html += '<input type="text" class="dop-input" placeholder="Поиск по коду или описанию..." style="flex:1;min-width:0" value="' + escHtml(mccSearchQuery) + '" oninput="mccSearch(this.value)" onfocus="this.select()">';
+  html += '</div>';
+  html += '<div style="display:flex;flex-direction:column;gap:8px">';
+  const query = mccSearchQuery.toLowerCase().trim();
+  const isSearching = query.length > 0;
+  for (const group of MCC_DATA) {
+    const filtered = query
+      ? group.codes.filter(c => String(c[0]).includes(query) || c[1].toLowerCase().includes(query))
+      : group.codes;
+    if (isSearching && filtered.length === 0) continue;
+    const isExpanded = isSearching || mccExpandedGroups.has(group.group);
+    html += '<div style="border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden">';
+    html += '<div onclick="toggleMCCGroup(\'' + escHtml(group.group).replace(/'/g, "\\'") + '\')" style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;cursor:pointer;background:var(--bg-card);border-bottom:' + (isExpanded ? '1px solid var(--border)' : 'none') + ';transition:background 0.15s">';
+    html += '<div style="display:flex;align-items:center;gap:8px"><span style="font-size:14px;font-weight:600;color:var(--text)">' + escHtml(group.group) + '</span>';
+    html += '<span style="font-size:11px;color:var(--text-muted);background:rgba(255,255,255,0.06);padding:2px 6px;border-radius:4px">' + filtered.length + '</span></div>';
+    html += '<span style="width:18px;height:18px;color:var(--text-muted);transition:transform 0.15s;transform:rotate(' + (isExpanded ? '180' : '0') + 'deg)">' + ICONS.chevDown + '</span>';
+    html += '</div>';
+    if (isExpanded) {
+      html += '<div style="display:flex;flex-direction:column;gap:1px">';
+      for (const [code, desc] of filtered) {
+        const highlighted = query ? desc.replace(new RegExp('(' + query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi'), '<mark style="background:rgba(34,197,94,0.25);color:var(--text);border-radius:2px;padding:0 1px">$1</mark>') : escHtml(desc);
+        html += '<div style="display:flex;align-items:center;gap:10px;padding:8px 14px;background:var(--bg-card)">';
+        html += '<span style="font-family:SF Mono,Monaco,monospace;font-size:13px;font-weight:600;color:var(--green);background:rgba(34,197,94,0.08);padding:2px 6px;border-radius:4px;min-width:40px;text-align:center">' + code + '</span>';
+        html += '<span style="font-size:13px;color:var(--text-sec)">' + highlighted + '</span>';
+        html += '</div>';
+      }
+      html += '</div>';
+    }
+    html += '</div>';
+  }
+  if (isSearching && html.indexOf('mcc-row') === -1 && html.indexOf('monospace') === -1) {
+    html = '<div class="empty" style="padding:40px 20px"><div style="width:48px;height:48px">' + ICONS.book + '</div><p>Ничего не найдено</p></div>';
+  }
+  html += '</div></div>';
+  app.innerHTML = html;
+}
+
+function countMCCTotal() {
+  let total = 0;
+  for (const g of MCC_DATA) total += g.codes.length;
+  return total;
+}
+
+function mccSearch(query) {
+  mccSearchQuery = query;
+  render();
+}
+
+function toggleMCCGroup(groupName) {
+  if (mccExpandedGroups.has(groupName)) mccExpandedGroups.delete(groupName);
+  else mccExpandedGroups.add(groupName);
+  render();
+}
+
+// ─── Apply Recommendations & Copy Prev Month ──────────────────────────────────
+function applyRecommendations(bankId) {
+  const bank = banks.find(b => b.id === bankId);
+  if (!bank) return;
+  const rec = getRecommendation()[bank.id];
+  if (!rec) { showToast('Нет рекомендаций'); return; }
+  bank.selectedCategories = Array.from(rec);
+  bank.updatedAt = new Date().toISOString();
+  invalidateRecommendation();
+  saveData(); render(); updateBadge();
+  showToast('Рекомендации применены');
+}
+
+function copyPrevMonth(bankId) {
+  const bank = banks.find(b => b.id === bankId);
+  if (!bank) return;
+  // Calculate previous month
+  const [y, m] = bank.month.split('-').map(Number);
+  const prevM = m === 1 ? 12 : m - 1;
+  const prevY = m === 1 ? y - 1 : y;
+  const prevMonth = prevY + '-' + String(prevM).padStart(2, '0');
+  const histKey = 'cashback-history-' + bank.coinData.provider.name + '-' + prevMonth;
+  try {
+    const raw = localStorage.getItem(histKey);
+    if (!raw) { showToast('Нет данных за прошлый месяц'); return; }
+    const hist = JSON.parse(raw);
+    if (hist.s) bank.selectedCategories = hist.s;
+    if (hist.e) bank.customExtras = hist.e;
+    if (hist.c) bank.customCategories = hist.c;
+    if (hist.mx !== undefined) bank.maxSelectable = hist.mx;
+    if (hist.ex) bank.excludeFromLimit = hist.ex;
+    bank.updatedAt = new Date().toISOString();
+    invalidateRecommendation();
+    saveData(); render(); updateBadge();
+    showToast('Выбор скопирован: ' + formatMonth(prevMonth));
+  } catch(e) { showToast('Ошибка загрузки данных'); }
+}
+
+// ─── Badge API ──────────────────────────────────────────────────────────────────
+function updateBadge() {
+  if (!navigator.setAppBadge) return;
+  const total = banks.reduce((sum, b) => sum + b.selectedCategories.length, 0);
+  if (total > 0) navigator.setAppBadge(total).catch(() => {});
+  else clearBadge();
+}
+function clearBadge() {
+  if (navigator.clearAppBadge) navigator.clearAppBadge().catch(() => {});
+}
+
+// ─── Init ───────────────────────────────────────────────────────────────────────
+(function init() {
+  initTheme();
+  const stored = loadData();
+  if (stored) { banks = stored; }
+  else {
+    const month = getCurrentMonth(); const now = new Date().toISOString();
+    banks = EMBEDDED_COINS.map(data => {
+      const v = validateCoin(data); if (!v.valid) return null;
+      return { id: genId(), coinData: data, selectedCategories: [], addedAt: now, updatedAt: now, month };
+    }).filter(Boolean);
+    // Try recover selections from backup before saving fresh data
+    tryRecoverSelections();
+    saveData();
+  }
+  // Smart default tab: if no selections, go to Banks
+  const totalSelected = banks.reduce((sum, b) => sum + b.selectedCategories.length, 0);
+  if (totalSelected === 0 && banks.length > 0) {
+    switchToTab('banks');
+  }
+  render();
+  updateBadge();
+  updateInstallBtn();
+})();
+</script>
+</body>
+</html>
