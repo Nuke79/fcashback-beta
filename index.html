@@ -1009,8 +1009,9 @@ function removeCustomCat(catId) {
   renderDopModal();
 }
 
-function toggleExcludeFromLimit(category) {
-  const bank = banks.find(b => b.id === dopBankId);
+function toggleExcludeFromLimit(category, bankId) {
+  const bid = bankId || dopBankId;
+  const bank = banks.find(b => b.id === bid);
   if (!bank) return;
   if (!bank.excludeFromLimit) bank.excludeFromLimit = [];
   const idx = bank.excludeFromLimit.indexOf(category);
@@ -1019,7 +1020,8 @@ function toggleExcludeFromLimit(category) {
   if (bank.excludeFromLimit.length === 0) bank.excludeFromLimit = undefined;
   invalidateRecommendation();
   saveData();
-  renderDopModal();
+  if (dopBankId) renderDopModal();
+  render(); updateBadge();
 }
 
 function getEffectivePercent(bank, category) {
@@ -1482,6 +1484,11 @@ function renderBanks(app) {
         if (entry.limit != null) {
           html += '<span class="cat-limit">до ' + entry.limit.toLocaleString('ru-RU') + ' ₽/мес</span>';
         }
+        // "Не в лимите" ∞ button
+        const isExcluded = isAlwaysActiveCategory(bank, entry.category);
+        html += '<button class="dop-excl-toggle' + (isExcluded ? ' active' : '') + '" onclick="event.stopPropagation();toggleExcludeFromLimit(\'' + escCat + '\',\'' + bank.id + '\')" title="Не в лимите" style="flex-shrink:0">';
+        html += '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13"/></svg>';
+        html += '</button>';
         // Stackable "+" button for duplicate categories
         if (hasBonus) {
           const bonusPct = dupGroups[entry.category].slice(1).reduce((s, e) => s + e.percent, 0);
