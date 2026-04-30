@@ -301,6 +301,29 @@ body { min-height: 100vh; -webkit-font-smoothing: antialiased; padding-bottom: e
   background: var(--tag-bg);
   padding: 1px 5px; border-radius: 4px; margin-left: 4px;
 }
+
+/* ── Stackable Cashback ── */
+.stack-tag {
+  display: inline-flex; align-items: center;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.3px;
+  color: var(--green);
+  background: rgba(74, 222, 128, 0.12);
+  padding: 1px 5px; border-radius: 4px; margin-left: 4px;
+}
+.stack-btn {
+  display: inline-flex; align-items: center; gap: 2px;
+  font-size: 12px; font-weight: 700; line-height: 1;
+  color: var(--text-sec); background: var(--tag-bg);
+  border: 1px solid var(--border); border-radius: 6px;
+  padding: 3px 7px; margin-left: 6px; cursor: pointer;
+  transition: all 0.15s; white-space: nowrap;
+}
+.stack-btn:hover { border-color: var(--green); color: var(--green); background: rgba(74, 222, 128, 0.08); }
+.stack-btn.active {
+  color: var(--green); border-color: var(--green);
+  background: rgba(74, 222, 128, 0.15);
+}
+.cat-row.stacked { border-left-color: var(--green) !important; }
 .dop-section-title {
   font-size: 13px; font-weight: 600; color: var(--text-sec); margin-bottom: 8px;
 }

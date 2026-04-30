@@ -431,6 +431,14 @@
               <li><strong>Доп. %</strong> — добавить бонусный % к существующей категории банка (показывается как «доп. +X%»)</li>
             </ul>
 
+            <h4>Stackable cashback (стак)</h4>
+            <p>Если в банке есть <strong>две категории с одинаковым названием</strong> но разным % (например, «Транспорт» 12% и «Транспорт» 5%), они объединяются в одну строку. Кнопка <kbd>+X%</kbd> рядом позволяет вручную добавить бонусный % к основному.</p>
+            <ul>
+              <li><strong>Не стакнуто</strong> — показывается только основной (наивысший) %</li>
+              <li><strong>Стакнуто</strong> — категория получает суммарный %, отмечается зелёной рамкой и тегом «стак +X%»</li>
+              <li>Бонус активируется <strong>отдельно</strong> от выбора категории и <strong>не учитывается в лимите</strong></li>
+            </ul>
+
             <h4>Рамки карточек банков</h4>
             <ul>
               <li><span style="display:inline-block;width:12px;height:12px;border:2px solid color-mix(in srgb, #eab308 50%, var(--border));border-radius:2px;vertical-align:middle;margin-right:4px"></span> <strong>Жёлто-золотая рамка</strong> — категории не выбраны. Нажмите «Выбрать» и отметьте нужные.</li>
@@ -518,10 +526,9 @@
 const CHANGELOG_KEY = 'cashback-beta-changelog-seen';
 const CHANGELOG = {
   '2025.05.01': [
-    'Синхронизация с релизом: исправлена рамка карточки банка',
-    'Напоминание в Google Календаре — настраиваемый день события',
-    'Кнопка «Обновить в календаре» при смене дня напоминания',
-    'Выбор дня напоминания в Справке → Ещё',
+    'Stackable cashback: дублирующиеся категории (одинаковое имя, разный %) связаны кнопкой «+»',
+    'Бонусная категория активируется вручную и не учитывается в лимите',
+    'Синхронизация с релизом: исправлена рамка карточки банка, календарь, напоминание',
   ],
 };
 
@@ -791,6 +798,7 @@ function saveData() {
       c: bank.customCategories,
       mx: bank.maxSelectable,
       ex: bank.excludeFromLimit,
+      st: bank.stackedCategories,
     };
     localStorage.setItem(histKey, JSON.stringify(histData));
   }
@@ -805,6 +813,7 @@ function loadData() {
         for (const bank of p.banks) {
           if (!bank.customExtras) bank.customExtras = {};
           if (!bank.customCategories) bank.customCategories = [];
+          // stackedCategories is optional — no init needed
         }
         return p.banks;
       }
@@ -1017,7 +1026,74 @@ function getEffectivePercent(bank, category) {
   const entry = bank.coinData.cashback.entries.find(e => e.category === category);
   if (!entry) return 0;
   const extra = (bank.customExtras || {})[category] || 0;
-  return entry.percent + extra;
+  let pct = entry.percent + extra;
+  // Add stacked bonus if active
+  const stacked = getStackedBonus(bank, category);
+  return pct + stacked;
+}
+
+// ─── Stackable Cashback ────────────────────────────────────────────────────────
+// Detect duplicate category names in same bank (different %)
+function getDuplicateGroups(bank) {
+  const groups = {};
+  for (const entry of bank.coinData.cashback.entries) {
+    if (!groups[entry.category]) groups[entry.category] = [];
+    groups[entry.category].push(entry);
+  }
+  // Only return groups with 2+ entries
+  const dupes = {};
+  for (const [name, entries] of Object.entries(groups)) {
+    if (entries.length >= 2) {
+      entries.sort((a, b) => b.percent - a.percent);
+      dupes[name] = entries;
+    }
+  }
+  return dupes;
+}
+
+// Get bonus % from stacked duplicate category (or 0 if not stacked)
+function getStackedBonus(bank, category) {
+  if (!bank.stackedCategories || !bank.stackedCategories.includes(category)) return 0;
+  const dupes = getDuplicateGroups(bank);
+  const entries = dupes[category];
+  if (!entries || entries.length < 2) return 0;
+  // Bonus is sum of all non-primary entry percents
+  let bonus = 0;
+  for (let i = 1; i < entries.length; i++) {
+    bonus += entries[i].percent;
+  }
+  return bonus;
+}
+
+// Get total effective percent for a category including stacking
+function getTotalEffectivePercent(bank, category) {
+  const entry = bank.coinData.cashback.entries.find(e => e.category === category);
+  if (!entry) return 0;
+  const extra = (bank.customExtras || {})[category] || 0;
+  return entry.percent + extra + getStackedBonus(bank, category);
+}
+
+// Toggle stacked bonus for a category
+function toggleStacked(bankId, category) {
+  saveScrollBeforeRender = saveScroll();
+  const bank = banks.find(b => b.id === bankId);
+  if (!bank) return;
+  if (!bank.stackedCategories) bank.stackedCategories = [];
+  const idx = bank.stackedCategories.indexOf(category);
+  if (idx >= 0) {
+    bank.stackedCategories.splice(idx, 1);
+    if (bank.stackedCategories.length === 0) bank.stackedCategories = undefined;
+  } else {
+    bank.stackedCategories.push(category);
+    // Auto-select the category if not already selected
+    if (!bank.selectedCategories.includes(category)) {
+      bank.selectedCategories.push(category);
+    }
+  }
+  bank.updatedAt = new Date().toISOString();
+  invalidateRecommendation();
+  saveData(); render(); updateBadge();
+  restoreScroll(saveScrollBeforeRender);
 }
 
 // ─── Category Grouping ─────────────────────────────────────────────────────────
@@ -1124,12 +1200,15 @@ function calculateRecommendation() {
     bankUsed[bank.id] = new Set(getAlwaysActiveCats(bank));
     alwaysActive[bank.id] = new Set(getAlwaysActiveCats(bank));
   }
-  // Collect all categories with their bank options
+  // Collect all categories with their bank options (skip duplicate entries — use primary only)
   const catGroups = {};
   for (const bank of banks) {
     const extras = bank.customExtras || {};
+    const seenCats = new Set();
     for (const entry of bank.coinData.cashback.entries) {
-      const effectivePct = entry.percent + (extras[entry.category] || 0);
+      if (seenCats.has(entry.category)) continue;
+      seenCats.add(entry.category);
+      const effectivePct = entry.percent + (extras[entry.category] || 0) + getStackedBonus(bank, entry.category);
       if (!catGroups[entry.category]) catGroups[entry.category] = [];
       catGroups[entry.category].push({ bankId: bank.id, percent: effectivePct });
     }
@@ -1233,11 +1312,13 @@ function renderSelected(app) {
       const entry = bank.coinData.cashback.entries.find(e => e.category === catName);
       if (entry) {
         const extra = extras[catName] || 0;
+        const stacked = getStackedBonus(bank, catName);
         items.push({
           category: entry.category,
-          percent: entry.percent + extra,
+          percent: entry.percent + extra + stacked,
           basePercent: entry.percent,
           extra: extra,
+          stacked: stacked,
           limit: entry.limit,
           bankName: bank.coinData.provider.name,
           bankColor: bc.color,
@@ -1288,7 +1369,7 @@ function renderSelected(app) {
         html += '<span class="sel-item-limit">до ' + item.limit.toLocaleString('ru-RU') + ' ₽</span>';
       }
       html += '</div></div>';
-      html += '<span class="sel-item-pct" style="' + bankColorStyle(item.bankName) + '">' + item.percent + '%' + (item.extra > 0 ? ' <span style="font-size:11px;font-weight:400;opacity:0.6">(' + item.basePercent + '+' + item.extra + ')</span>' : '') + '</span>';
+      html += '<span class="sel-item-pct" style="' + bankColorStyle(item.bankName) + '">' + item.percent + '%' + (item.stacked > 0 ? ' <span style="font-size:11px;font-weight:400;opacity:0.6">(' + item.basePercent + '+' + item.stacked + ' стак)</span>' : '') + (item.extra > 0 && item.stacked <= 0 ? ' <span style="font-size:11px;font-weight:400;opacity:0.6">(' + item.basePercent + '+' + item.extra + ')</span>' : '') + '</span>';
       html += '</div>';
   }
   app.innerHTML = html;
@@ -1374,23 +1455,37 @@ function renderBanks(app) {
 
       const limitReached = maxCat > 0 && selCount >= maxCat;
       const bankExtras = bank.customExtras || {};
+      const dupGroups = getDuplicateGroups(bank);
+      const renderedCategories = new Set(); // track rendered categories to skip duplicate rows
       for (const entry of [...bank.coinData.cashback.entries].sort((a, b) => b.percent - a.percent)) {
+        // Skip duplicate category entries (only show primary / highest % row)
+        if (renderedCategories.has(entry.category)) continue;
+        renderedCategories.add(entry.category);
+
         const isSel = bank.selectedCategories.includes(entry.category);
         const isRec = rec.has(entry.category);
         const isAlways = isAlwaysActiveCategory(bank, entry.category);
         const isDisabled = !isSel && limitReached && !isAlways;
         const extra = bankExtras[entry.category] || 0;
-        const effectivePct = entry.percent + extra;
+        const stacked = getStackedBonus(bank, entry.category);
+        const effectivePct = entry.percent + extra + stacked;
         const entryNotes = (entry.notes || []).map(nid => notesMap[nid]).filter(Boolean);
         const entryLinks = (entry.links || []).map(lid => linksMap[lid]).filter(Boolean);
         const escCat = escHtml(entry.category).replace(/'/g, "\\'");
+        const isStacked = stacked > 0;
+        const hasBonus = dupGroups[entry.category] && dupGroups[entry.category].length >= 2;
 
-        html += '<div class="cat-row' + (isSel ? ' checked' : '') + (isRec ? ' recommended' : '') + (isDisabled ? ' disabled' : '') + (isAlways ? ' excluded' : '') + '"' + (isDisabled ? '' : ' onclick="toggleCat(\'' + bank.id + '\',\'' + escCat + '\')"') + '>';
+        html += '<div class="cat-row' + (isSel ? ' checked' : '') + (isRec ? ' recommended' : '') + (isDisabled ? ' disabled' : '') + (isAlways ? ' excluded' : '') + (isStacked ? ' stacked' : '') + '"' + (isDisabled ? '' : ' onclick="toggleCat(\'' + bank.id + '\',\'' + escCat + '\')"') + '>';
         html += '<div class="cat-checkbox">' + ICONS.check + '</div>';
-        html += '<div class="cat-info"><div class="cat-name">' + escHtml(entry.category) + (isRec ? ' <span style="display:inline-flex;align-items:center;vertical-align:middle;margin-left:4px;color:#eab308;width:14px;height:14px">' + ICONS.bolt + '</span>' : '') + (extra > 0 ? ' <span class="dop-tag">доп. +' + extra + '%</span>' : '') + (isAlways && !isSel ? ' <span class="dop-tag">не в лимите</span>' : '') + '</div>';
-        html += '<div class="cat-details"><span class="cat-percent ' + percentClass(effectivePct) + '">' + effectivePct + '%' + (extra > 0 ? ' <span style="font-size:11px;font-weight:400;color:var(--text-muted)">(' + entry.percent + '+' + extra + ')</span>' : '') + '</span>';
+        html += '<div class="cat-info"><div class="cat-name">' + escHtml(entry.category) + (isRec ? ' <span style="display:inline-flex;align-items:center;vertical-align:middle;margin-left:4px;color:#eab308;width:14px;height:14px">' + ICONS.bolt + '</span>' : '') + (extra > 0 ? ' <span class="dop-tag">доп. +' + extra + '%</span>' : '') + (isAlways && !isSel ? ' <span class="dop-tag">не в лимите</span>' : '') + (isStacked ? ' <span class="stack-tag">стак +' + stacked + '%</span>' : '') + '</div>';
+        html += '<div class="cat-details"><span class="cat-percent ' + percentClass(effectivePct) + '">' + effectivePct + '%' + (isStacked ? ' <span style="font-size:11px;font-weight:400;color:var(--text-muted)">(' + entry.percent + '+' + stacked + ')</span>' : '') + (extra > 0 && !isStacked ? ' <span style="font-size:11px;font-weight:400;color:var(--text-muted)">(' + entry.percent + '+' + extra + ')</span>' : '') + '</span>';
         if (entry.limit != null) {
           html += '<span class="cat-limit">до ' + entry.limit.toLocaleString('ru-RU') + ' ₽/мес</span>';
+        }
+        // Stackable "+" button for duplicate categories
+        if (hasBonus) {
+          const bonusPct = dupGroups[entry.category].slice(1).reduce((s, e) => s + e.percent, 0);
+          html += '<button class="stack-btn' + (isStacked ? ' active' : '') + '" onclick="event.stopPropagation();toggleStacked(\'' + bank.id + '\',\'' + escCat + '\')" title="' + (isStacked ? 'Убрать бонус' : 'Добавить бонус +' + bonusPct + '%') + '">' + (isStacked ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><polyline points="20 6 9 17 4 12"/></svg>' : '+') + (isStacked ? '' : bonusPct + '%') + '</button>';
         }
         html += '</div></div>';
         if (entryNotes.length > 0 || entryLinks.length > 0) {
@@ -1463,6 +1558,7 @@ function newMonth(bankId) {
   const bank = banks.find(b => b.id === bankId);
   if (!bank) return;
   bank.selectedCategories = [];
+  bank.stackedCategories = undefined;
   bank.month = getCurrentMonth();
   bank.updatedAt = new Date().toISOString();
   saveData(); render(); updateBadge();
@@ -2203,6 +2299,7 @@ function copyPrevMonth(bankId) {
     if (hist.c) bank.customCategories = hist.c;
     if (hist.mx !== undefined) bank.maxSelectable = hist.mx;
     if (hist.ex) bank.excludeFromLimit = hist.ex;
+    if (hist.st) bank.stackedCategories = hist.st;
     bank.updatedAt = new Date().toISOString();
     invalidateRecommendation();
     saveData(); render(); updateBadge();
