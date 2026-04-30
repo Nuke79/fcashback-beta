@@ -53,7 +53,7 @@
   <!-- ── Header ── -->
   <header class="header">
     <div class="header-row">
-      <div class="header-title" id="headerTitle" onclick="easterEggTap()">Кэшбэк <span style="color:#eab308;font-size:12px;font-weight:700;vertical-align:super">BETA</span></div>
+      <div class="header-title" id="headerTitle" onclick="easterEggTap()">Кэшбэк Ассистент</div>
       <div class="header-actions">
         <button class="btn btn-icon" id="installBtn" onclick="installPwa()" title="Добавить на главный экран" style="display:none">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
@@ -88,6 +88,9 @@
       <div class="reminder-desc" id="reminderDesc">Новый месяц — не забудьте выбрать категории кэшбэка!</div>
     </div>
     <div class="reminder-actions">
+      <button class="reminder-cal-btn" id="reminderCalBtn" onclick="addCalEvent(this)" title="Добавить в календарь">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      </button>
       <button class="btn btn-primary" onclick="goSelectCategories()" style="min-height:36px;padding:6px 14px;font-size:13px">Выбрать</button>
       <button class="reminder-close" onclick="dismissReminder()" title="Не напоминать">×</button>
     </div>
@@ -354,6 +357,24 @@
     </div>
   </div>
 
+  <!-- ── Calendar Reminder Prompt ── -->
+  <div class="overlay hidden" id="calendarPrompt">
+    <div class="modal" style="max-width:380px">
+      <div class="modal-header">
+        <div class="modal-title">📅 Напоминание в календаре</div>
+        <div class="modal-desc" id="calendarPromptDesc">Ежемесячное событие — не забудете выбрать категории</div>
+      </div>
+      <div class="modal-body" style="font-size:13px;color:var(--text-sec);line-height:1.7;text-align:center">
+        <span id="calendarPromptDayText">Откроется Google Календарь с готовым событием на 1-е число.</span><br>
+        Нажмите «Сохранить» — готово!
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="dismissCalendarPrompt()">Позже</button>
+        <button class="btn btn-primary" onclick="addCalendarReminder()">Добавить</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ── Changelog Modal ── -->
   <div class="overlay hidden" id="changelogModal">
     <div class="modal">
@@ -468,6 +489,18 @@
 
             <h4>Напоминание</h4>
             <p>Жёлтый баннер «Выберите категории» появляется 1-го числа каждого месяца. Нажмите «Выбрать» — перейдёт к банкам. Кнопка <kbd>×</kbd> скроет до следующего месяца.</p>
+            <p>Кнопка <kbd>📅</kbd> открывает Google Календарь с готовым ежемесячным событием. Нажмите «Сохранить» — и система будет напоминать каждый месяц. Доступна в баннере и здесь:</p>
+
+            <div style="display:flex;align-items:center;gap:10px;margin-top:10px">
+              <label style="font-size:13px;color:var(--text-sec);white-space:nowrap">День напоминания:</label>
+              <select id="reminderDaySelect" onchange="changeReminderDay(this.value)" style="flex:1;min-width:0;padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--bg-card);color:var(--text);font-family:var(--font);font-size:14px">
+              </select>
+            </div>
+
+            <button class="btn btn-outline" id="helpCalBtn" onclick="addCalEvent(this)" style="margin-top:8px;width:100%">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              Добавить в календарь
+            </button>
 
             <h4>Версия</h4>
             <p>Нажмите на заголовок <strong>7 раз</strong> — покажется текущая версия (easter egg).</p>
@@ -484,14 +517,12 @@
 // ─── Changelog (declared early — used by easter egg & SW handler) ─────────────────
 const CHANGELOG_KEY = 'cashback-beta-changelog-seen';
 const CHANGELOG = {
-  '2025.04.30-r6': [
-    'Stackable cashback: дублирующиеся категории (одинаковое имя, разный %) теперь связаны кнопкой «+»',
-    'Бонусная категория активируется вручную и не учитывается в лимите',
+  '2025.05.01': [
+    'Синхронизация с релизом: исправлена рамка карточки банка',
+    'Напоминание в Google Календаре — настраиваемый день события',
+    'Кнопка «Обновить в календаре» при смене дня напоминания',
+    'Выбор дня напоминания в Справке → Ещё',
   ],
-  '2025.04.27-r5': [
-    'Описание карты теперь отображается на всю ширину внизу карточки банка',
-    'Попап «Что нового» при обновлении приложения',
-  ]
 };
 
 // ─── Easter Egg: tap title 7 times to show version ─────────────────────────────────
@@ -514,7 +545,7 @@ function showToast(msg) {
   el.className = 'toast';
   el.textContent = msg;
   document.body.appendChild(el);
-  setTimeout(() => el.remove(), 3000);
+  setTimeout(() => el.remove(), 2500);
 }
 
 // ─── PWA Install ────────────────────────────────────────────────────────────────
@@ -656,18 +687,19 @@ if ('serviceWorker' in navigator) {
 }
 
 // ─── SW message handler for changelog & version ─────────────────────────────────
-navigator.serviceWorker.addEventListener('message', function handler(e) {
-  if (e.data && e.data.version) {
-    const ver = e.data.version.replace(/^β/, '');
-    const seen = localStorage.getItem(CHANGELOG_KEY);
-    if (seen !== ver && CHANGELOG[ver]) {
-      openChangelogModal(ver);
-    } else {
-      // Mark as seen even if no changelog entry
-      localStorage.setItem(CHANGELOG_KEY, ver);
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.addEventListener('message', function handler(e) {
+    if (e.data && e.data.version) {
+      const ver = e.data.version;
+      const seen = localStorage.getItem(CHANGELOG_KEY);
+      if (seen !== ver && CHANGELOG[ver]) {
+        openChangelogModal(ver);
+      } else {
+        localStorage.setItem(CHANGELOG_KEY, ver);
+      }
     }
-  }
-});
+  });
+}
 
 // ─── Embedded COIN Data ─────────────────────────────────────────────────────────
 const EMBEDDED_COINS = [
@@ -1085,62 +1117,6 @@ function getAlwaysActiveCats(bank) {
   return result;
 }
 
-// ─── Stackable Cashback (duplicate categories with different %) ──────────────
-function findStackableGroups(sortedEntries) {
-  const groups = {};
-  for (let i = 0; i < sortedEntries.length; i++) {
-    const name = sortedEntries[i].category;
-    if (!groups[name]) groups[name] = [];
-    groups[name].push(i);
-  }
-  const result = {};
-  for (const [name, indices] of Object.entries(groups)) {
-    if (indices.length >= 2) {
-      result[name] = { primaryIndex: indices[0], bonusIndex: indices[1], bonusIndices: indices.slice(1) };
-    }
-  }
-  return result;
-}
-
-function toggleStackedBonus(bankId, categoryName) {
-  saveScrollBeforeRender = saveScroll();
-  const bank = banks.find(b => b.id === bankId);
-  if (!bank) return;
-  if (!bank.stackedBonuses) bank.stackedBonuses = {};
-  if (!bank.stackedBonuses[categoryName]) {
-    const sortedEntries = [...bank.coinData.cashback.entries].sort((a, b) => b.percent - a.percent);
-    const groups = findStackableGroups(sortedEntries);
-    const group = groups[categoryName];
-    if (!group) return;
-    const bonusEntry = sortedEntries[group.bonusIndex];
-    bank.stackedBonuses[categoryName] = {
-      bonusPercent: bonusEntry.percent,
-      bonusLimit: bonusEntry.limit != null ? bonusEntry.limit : null,
-      active: true
-    };
-  } else {
-    bank.stackedBonuses[categoryName].active = !bank.stackedBonuses[categoryName].active;
-  }
-  bank.updatedAt = new Date().toISOString();
-  invalidateRecommendation();
-  saveData(); render();
-  restoreScroll(saveScrollBeforeRender);
-}
-
-function getStackedBonusPercent(bank, categoryName) {
-  if (!bank.stackedBonuses || !bank.stackedBonuses[categoryName]) return 0;
-  return bank.stackedBonuses[categoryName].active ? bank.stackedBonuses[categoryName].bonusPercent : 0;
-}
-
-function getStackedBonusLimit(bank, categoryName) {
-  if (!bank.stackedBonuses || !bank.stackedBonuses[categoryName]) return null;
-  return bank.stackedBonuses[categoryName].active ? bank.stackedBonuses[categoryName].bonusLimit : null;
-}
-
-function isStackedBonusActive(bank, categoryName) {
-  return !!(bank.stackedBonuses && bank.stackedBonuses[categoryName] && bank.stackedBonuses[categoryName].active);
-}
-
 function calculateRecommendation() {
   const bankCaps = {}, bankUsed = {}, alwaysActive = {};
   for (const bank of banks) {
@@ -1257,15 +1233,11 @@ function renderSelected(app) {
       const entry = bank.coinData.cashback.entries.find(e => e.category === catName);
       if (entry) {
         const extra = extras[catName] || 0;
-        const stackedPct = getStackedBonusPercent(bank, catName);
-        const stackedLimit = getStackedBonusLimit(bank, catName);
         items.push({
           category: entry.category,
-          percent: entry.percent + extra + stackedPct,
+          percent: entry.percent + extra,
           basePercent: entry.percent,
           extra: extra,
-          stacked: stackedPct,
-          stackedLimit: stackedLimit,
           limit: entry.limit,
           bankName: bank.coinData.provider.name,
           bankColor: bc.color,
@@ -1315,11 +1287,8 @@ function renderSelected(app) {
       if (item.limit != null) {
         html += '<span class="sel-item-limit">до ' + item.limit.toLocaleString('ru-RU') + ' ₽</span>';
       }
-      if (item.stackedLimit != null) {
-        html += '<span class="sel-item-limit">+до ' + item.stackedLimit.toLocaleString('ru-RU') + ' ₽</span>';
-      }
       html += '</div></div>';
-      html += '<span class="sel-item-pct" style="' + bankColorStyle(item.bankName) + '">' + item.percent + '%' + ((item.extra > 0 || item.stacked > 0) ? ' <span style="font-size:11px;font-weight:400;opacity:0.6">(' + (item.basePercent || 0) + (item.extra > 0 ? '+' + item.extra : '') + (item.stacked > 0 ? '+' + item.stacked : '') + ')</span>' : '') + '</span>';
+      html += '<span class="sel-item-pct" style="' + bankColorStyle(item.bankName) + '">' + item.percent + '%' + (item.extra > 0 ? ' <span style="font-size:11px;font-weight:400;opacity:0.6">(' + item.basePercent + '+' + item.extra + ')</span>' : '') + '</span>';
       html += '</div>';
   }
   app.innerHTML = html;
@@ -1374,7 +1343,6 @@ function renderBanks(app) {
     if (bank.coinData.provider.notes) {
       html += '<div class="bc-desc-footer">' + escHtml(bank.coinData.provider.notes) + '</div>';
     }
-    html += '</div>';
 
     if (isExp) {
       const rec = getRecommendation()[bank.id] || new Set();
@@ -1406,44 +1374,25 @@ function renderBanks(app) {
 
       const limitReached = maxCat > 0 && selCount >= maxCat;
       const bankExtras = bank.customExtras || {};
-      const sortedEntries = [...bank.coinData.cashback.entries].sort((a, b) => b.percent - a.percent);
-      const stackGroups = findStackableGroups(sortedEntries);
-      const bonusSkipSet = new Set();
-      for (const g of Object.values(stackGroups)) {
-        for (const idx of g.bonusIndices) bonusSkipSet.add(idx);
-      }
-      for (let si = 0; si < sortedEntries.length; si++) {
-        if (bonusSkipSet.has(si)) continue;
-        const entry = sortedEntries[si];
+      for (const entry of [...bank.coinData.cashback.entries].sort((a, b) => b.percent - a.percent)) {
         const isSel = bank.selectedCategories.includes(entry.category);
         const isRec = rec.has(entry.category);
         const isAlways = isAlwaysActiveCategory(bank, entry.category);
         const isDisabled = !isSel && limitReached && !isAlways;
         const extra = bankExtras[entry.category] || 0;
-        const hasStack = !!stackGroups[entry.category];
-        const isStacked = isStackedBonusActive(bank, entry.category);
-        const stackedPct = isSel ? getStackedBonusPercent(bank, entry.category) : 0;
-        const stackedLimit = isSel ? getStackedBonusLimit(bank, entry.category) : null;
-        const effectivePct = entry.percent + extra + stackedPct;
+        const effectivePct = entry.percent + extra;
         const entryNotes = (entry.notes || []).map(nid => notesMap[nid]).filter(Boolean);
         const entryLinks = (entry.links || []).map(lid => linksMap[lid]).filter(Boolean);
         const escCat = escHtml(entry.category).replace(/'/g, "\\'");
 
-        html += '<div class="cat-row' + (isSel ? ' checked' : '') + (isRec ? ' recommended' : '') + (isDisabled ? ' disabled' : '') + (isAlways ? ' excluded' : '') + (isStacked ? ' stacked-active' : '') + '"' + (isDisabled ? '' : ' onclick="toggleCat(\'' + bank.id + '\',\'' + escCat + '\')"') + '>';
+        html += '<div class="cat-row' + (isSel ? ' checked' : '') + (isRec ? ' recommended' : '') + (isDisabled ? ' disabled' : '') + (isAlways ? ' excluded' : '') + '"' + (isDisabled ? '' : ' onclick="toggleCat(\'' + bank.id + '\',\'' + escCat + '\')"') + '>';
         html += '<div class="cat-checkbox">' + ICONS.check + '</div>';
         html += '<div class="cat-info"><div class="cat-name">' + escHtml(entry.category) + (isRec ? ' <span style="display:inline-flex;align-items:center;vertical-align:middle;margin-left:4px;color:#eab308;width:14px;height:14px">' + ICONS.bolt + '</span>' : '') + (extra > 0 ? ' <span class="dop-tag">доп. +' + extra + '%</span>' : '') + (isAlways && !isSel ? ' <span class="dop-tag">не в лимите</span>' : '') + '</div>';
-        html += '<div class="cat-details"><span class="cat-percent ' + percentClass(effectivePct) + '">' + effectivePct + '%' + (extra > 0 || stackedPct > 0 ? ' <span style="font-size:11px;font-weight:400;color:var(--text-muted)">(' + entry.percent + (extra > 0 ? '+' + extra : '') + (stackedPct > 0 ? '+' + stackedPct : '') + ')</span>' : '') + '</span>';
+        html += '<div class="cat-details"><span class="cat-percent ' + percentClass(effectivePct) + '">' + effectivePct + '%' + (extra > 0 ? ' <span style="font-size:11px;font-weight:400;color:var(--text-muted)">(' + entry.percent + '+' + extra + ')</span>' : '') + '</span>';
         if (entry.limit != null) {
           html += '<span class="cat-limit">до ' + entry.limit.toLocaleString('ru-RU') + ' ₽/мес</span>';
         }
-        if (stackedLimit != null) {
-          html += '<span class="cat-limit">+до ' + stackedLimit.toLocaleString('ru-RU') + ' ₽/мес</span>';
-        }
         html += '</div></div>';
-        if (hasStack) {
-          const bonusEntry = sortedEntries[stackGroups[entry.category].bonusIndex];
-          html += '<button class="stacked-bonus-btn' + (isStacked ? ' active' : '') + '" onclick="event.stopPropagation();toggleStackedBonus(\'' + bank.id + '\',\'' + escCat + '\')" title="' + (isStacked ? 'Убрать бонус' : 'Добавить бонус +' + bonusEntry.percent + '%') + '">' + (isStacked ? '+' + bonusEntry.percent + '%' : '+') + '</button>';
-        }
         if (entryNotes.length > 0 || entryLinks.length > 0) {
           html += '<button class="cat-note-toggle" onclick="event.stopPropagation();toggleNotes(this)"><span style="width:18px;height:18px">' + ICONS.chevDown + '</span></button>';
         }
@@ -1470,7 +1419,7 @@ function renderBanks(app) {
       }
       html += '</div></div>';
     }
-    html += '</div>';
+    html += '</div><!-- /bank-card -->';
   }
   html += '</div>';
   app.innerHTML = html;
@@ -1548,6 +1497,7 @@ function closeOnboarding() {
   const el = document.getElementById('onboarding');
   if (el) el.classList.add('hidden');
   localStorage.setItem(ONBOARDING_KEY, '1');
+  showCalendarPrompt();
 }
 function updateOnboardingSlide() {
   document.querySelectorAll('.onboarding-slide').forEach((s, i) => {
@@ -1779,10 +1729,10 @@ function handleDuplicate(action) {
 
 // ─── Export / Import Backup ─────────────────────────────────────────────────────
 function exportBackup() {
-  const blob = new Blob([JSON.stringify({ banks }, null, 2)], { type: 'application/json' });
+  const blob = new Blob([JSON.stringify({ banks, settings: { reminderDay: getReminderDay(), theme: localStorage.getItem(THEME_KEY) } }, null, 2)], { type: 'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = 'cashback-backup-' + new Date().toISOString().slice(0,10) + '.json';
+  a.download = 'cashback-beta-backup-' + new Date().toISOString().slice(0,10) + '.json';
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
   URL.revokeObjectURL(a.href);
 }
@@ -1797,7 +1747,13 @@ function importBackup() {
         const data = JSON.parse(ev.target.result);
         if (data.banks && Array.isArray(data.banks)) {
           for (const bank of data.banks) { const v = validateCoin(bank.coinData); if (!v.valid) { alert('Ошибка: ' + v.error); return; } }
-          banks = data.banks; saveData(); expandedBankId = null; render();
+          banks = data.banks; saveData(); expandedBankId = null;
+          // Restore settings
+          if (data.settings) {
+            if (data.settings.reminderDay) setReminderDay(data.settings.reminderDay);
+            if (data.settings.theme) localStorage.setItem(THEME_KEY, data.settings.theme);
+          }
+          render(); updateCalendarButtons(); initReminderDaySelect(); initTheme();
         } else alert('Неверный формат файла');
       } catch(err) { alert('Не удалось прочитать файл'); }
     };
@@ -2237,7 +2193,7 @@ function copyPrevMonth(bankId) {
   const prevM = m === 1 ? 12 : m - 1;
   const prevY = m === 1 ? y - 1 : y;
   const prevMonth = prevY + '-' + String(prevM).padStart(2, '0');
-  const histKey = 'cashback-history-' + bank.coinData.provider.name + '-' + prevMonth;
+  const histKey = 'cashback-beta-history-' + bank.coinData.provider.name + '-' + prevMonth;
   try {
     const raw = localStorage.getItem(histKey);
     if (!raw) { showToast('Нет данных за прошлый месяц'); return; }
@@ -2257,9 +2213,9 @@ function copyPrevMonth(bankId) {
 // ─── Badge API ──────────────────────────────────────────────────────────────────
 function updateBadge() {
   if (!navigator.setAppBadge) return;
-  const total = banks.reduce((sum, b) => sum + b.selectedCategories.length, 0);
-  if (total > 0) navigator.setAppBadge(total).catch(() => {});
-  else clearBadge();
+  const emptyBanks = banks.filter(b => b.selectedCategories.length === 0).length;
+  if (emptyBanks > 0) navigator.setAppBadge(emptyBanks).catch(() => {});
+  else if (navigator.clearAppBadge) navigator.clearAppBadge().catch(() => {});
 }
 function clearBadge() {
   if (navigator.clearAppBadge) navigator.clearAppBadge().catch(() => {});
@@ -2292,22 +2248,6 @@ function checkMonthlyReminder() {
     descEl.textContent = names.slice(0, 2).join(', ') + ' и ещё ' + (names.length - 2) + ' — категории не выбраны';
   }
   document.getElementById('reminderBanner').classList.add('show');
-  // Try browser notification
-  tryBrowserNotification(names);
-}
-
-function tryBrowserNotification(bankNames) {
-  if (!('Notification' in window)) return;
-  if (Notification.permission === 'granted') {
-    new Notification('Кэшбэк Ассистент', {
-      body: bankNames.join(', ') + ' — выберите категории!',
-      icon: './icon-192.png',
-      tag: 'cashback-monthly-reminder'
-    });
-  } else if (Notification.permission === 'default') {
-    // Ask once, don't be annoying
-    Notification.requestPermission();
-  }
 }
 
 function goSelectCategories() {
@@ -2324,6 +2264,134 @@ function goSelectCategories() {
 function dismissReminder() {
   localStorage.setItem(REMINDER_DISMISSED_KEY, getCurrentMonth());
   document.getElementById('reminderBanner').classList.remove('show');
+}
+
+// ─── Calendar Reminder ──────────────────────────────────────────────────────────
+const CALENDAR_ADDED_KEY = 'cashback-beta-calendar-added';
+const CALENDAR_PROMPT_KEY = 'cashback-beta-calendar-prompt-seen';
+const REMINDER_DAY_KEY = 'cashback-beta-reminder-day';
+const REMINDER_DAY_DEFAULT = 1;
+
+function getReminderDay() { return parseInt(localStorage.getItem(REMINDER_DAY_KEY)) || REMINDER_DAY_DEFAULT; }
+function setReminderDay(d) { localStorage.setItem(REMINDER_DAY_KEY, String(d)); }
+function isCalendarAdded() { return localStorage.getItem(CALENDAR_ADDED_KEY) === '1'; }
+function dayNoun(d) { return d + '-е'; }
+
+function initReminderDaySelect() {
+  const sel = document.getElementById('reminderDaySelect');
+  if (!sel) return;
+  const cur = getReminderDay();
+  for (let i = 1; i <= 28; i++) {
+    const opt = document.createElement('option');
+    opt.value = i;
+    opt.textContent = dayNoun(i) + ' числа';
+    if (i === cur) opt.selected = true;
+    sel.appendChild(opt);
+  }
+}
+
+function changeReminderDay(newDay) {
+  const oldDay = getReminderDay();
+  newDay = parseInt(newDay);
+  setReminderDay(newDay);
+  if (newDay !== oldDay && isCalendarAdded()) {
+    // User changed the day and had already added calendar event
+    localStorage.removeItem(CALENDAR_ADDED_KEY);
+    showToast('Удалите старое событие в календаре и добавьте новое');
+  }
+  updateCalendarButtons();
+  updateCalendarPromptText();
+}
+
+function updateCalendarPromptText() {
+  const d = getReminderDay();
+  const descEl = document.getElementById('calendarPromptDesc');
+  const dayTextEl = document.getElementById('calendarPromptDayText');
+  if (descEl) descEl.textContent = 'Ежемесячное событие — не забудете выбрать категории ' + dayNoun(d) + ' числа';
+  if (dayTextEl) dayTextEl.textContent = 'Откроется Google Календарь с готовым событием на ' + dayNoun(d) + ' число.';
+}
+
+function updateCalendarButtons() {
+  const added = isCalendarAdded();
+  // Banner button
+  const rb = document.getElementById('reminderCalBtn');
+  if (rb) {
+    if (added) {
+      rb.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>';
+      rb.title = 'Обновить событие в календаре';
+      rb.onclick = function(){addCalEvent(rb)};
+      rb.style.color = 'var(--yellow)';
+    } else {
+      rb.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>';
+      rb.title = 'Добавить в календарь';
+      rb.onclick = function(){addCalEvent(rb)};
+      rb.style.color = '';
+    }
+  }
+  // Help button
+  const hb = document.getElementById('helpCalBtn');
+  if (hb) {
+    if (added) {
+      hb.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;flex-shrink:0"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg> Обновить в календаре';
+      hb.disabled = false; hb.style.opacity = ''; hb.onclick = function(){addCalEvent(hb)};
+    } else {
+      hb.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;flex-shrink:0"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> Добавить в календарь';
+      hb.disabled = false; hb.style.opacity = ''; hb.onclick = function(){addCalEvent(hb)};
+    }
+  }
+}
+
+function showCalendarPrompt() {
+  if (isCalendarAdded()) return;
+  if (localStorage.getItem(CALENDAR_PROMPT_KEY)) return;
+  if (banks.length === 0) return;
+  updateCalendarPromptText();
+  document.getElementById('calendarPrompt').classList.remove('hidden');
+}
+
+function dismissCalendarPrompt() {
+  localStorage.setItem(CALENDAR_PROMPT_KEY, '1');
+  document.getElementById('calendarPrompt').classList.add('hidden');
+}
+
+function addCalendarReminder() {
+  localStorage.setItem(CALENDAR_PROMPT_KEY, '1');
+  localStorage.setItem(CALENDAR_ADDED_KEY, '1');
+  document.getElementById('calendarPrompt').classList.add('hidden');
+  openCalendarEvent();
+  updateCalendarButtons();
+}
+
+function addCalEvent(btn) {
+  localStorage.setItem(CALENDAR_ADDED_KEY, '1');
+  openCalendarEvent();
+  updateCalendarButtons();
+}
+
+function openCalendarEvent() {
+  const now = new Date();
+  const day = getReminderDay();
+  // Next occurrence of the chosen day
+  let y = now.getFullYear(), m = now.getMonth();
+  let next = new Date(y, m, day);
+  if (next <= now) {
+    // Day already passed this month, go to next month
+    next = new Date(y, m + 1, day);
+  }
+  const ds = next.getFullYear() + String(next.getMonth() + 1).padStart(2, '0') + String(day).padStart(2, '0') + 'T100000';
+  const params = new URLSearchParams({
+    action: 'TEMPLATE',
+    text: 'Кэшбэк — выберите категории',
+    dates: ds + '/' + ds,
+    recur: 'RRULE:FREQ=MONTHLY;BYMONTHDAY=' + day,
+    details: 'Откройте приложение «Кэшбэк Ассистент» и выберите категории кэшбэка на новый месяц.',
+    location: ''
+  });
+  window.open('https://calendar.google.com/calendar/render?' + params.toString(), '_blank');
+}
+
+function downloadCalendarEvent() {
+  addCalEvent(document.getElementById('reminderCalBtn'));
 }
 
 // ─── Init ───────────────────────────────────────────────────────────────────────
@@ -2348,10 +2416,7 @@ function dismissReminder() {
   }
   // Onboarding
   if (!localStorage.getItem(ONBOARDING_KEY)) { showOnboarding(); }
-  render();
-  updateBadge();
-  updateInstallBtn();
-  checkMonthlyReminder();
+  render(); updateBadge(); updateCalendarButtons(); updateInstallBtn(); checkMonthlyReminder(); initReminderDaySelect();
 })();
 </script>
 </body>
