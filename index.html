@@ -1015,9 +1015,16 @@ function toggleExcludeFromLimit(category, bankId) {
   if (!bank) return;
   if (!bank.excludeFromLimit) bank.excludeFromLimit = [];
   const idx = bank.excludeFromLimit.indexOf(category);
-  if (idx >= 0) bank.excludeFromLimit.splice(idx, 1);
-  else bank.excludeFromLimit.push(category);
-  if (bank.excludeFromLimit.length === 0) bank.excludeFromLimit = undefined;
+  if (idx >= 0) {
+    bank.excludeFromLimit.splice(idx, 1);
+    if (bank.excludeFromLimit.length === 0) bank.excludeFromLimit = undefined;
+  } else {
+    bank.excludeFromLimit.push(category);
+    // Auto-select the category if not already selected (same as toggleStacked)
+    if (!bank.selectedCategories.includes(category)) {
+      bank.selectedCategories.push(category);
+    }
+  }
   invalidateRecommendation();
   saveData();
   if (dopBankId) renderDopModal();
