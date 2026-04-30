@@ -1479,7 +1479,7 @@ function renderBanks(app) {
 
         html += '<div class="cat-row' + (isSel ? ' checked' : '') + (isRec ? ' recommended' : '') + (isDisabled ? ' disabled' : '') + (isAlways ? ' excluded' : '') + (isStacked ? ' stacked' : '') + '"' + (isDisabled ? '' : ' onclick="toggleCat(\'' + bank.id + '\',\'' + escCat + '\')"') + '>';
         html += '<div class="cat-checkbox">' + ICONS.check + '</div>';
-        html += '<div class="cat-info"><div class="cat-name">' + escHtml(entry.category) + (isRec ? ' <span style="display:inline-flex;align-items:center;vertical-align:middle;margin-left:4px;color:#eab308;width:14px;height:14px">' + ICONS.bolt + '</span>' : '') + (extra > 0 ? ' <span class="dop-tag">доп. +' + extra + '%</span>' : '') + (isStacked ? ' <span class="stack-tag">доп. +' + stacked + '%</span>' : '') + (isAlways ? ' <span class="dop-tag">не в лимите</span>' : '') + '</div>';
+        html += '<div class="cat-info"><div class="cat-name">' + escHtml(entry.category) + (isRec ? ' <span style="display:inline-flex;align-items:center;vertical-align:middle;margin-left:4px;color:#eab308;width:14px;height:14px">' + ICONS.bolt + '</span>' : '') + (extra > 0 ? ' <span class="dop-tag">доп. +' + extra + '%</span>' : '') + (isStacked ? ' <span class="stack-tag">доп. +' + stacked + '%</span>' : '') + '</div>';
         html += '<div class="cat-details"><span class="cat-percent ' + percentClass(effectivePct) + '">' + effectivePct + '%' + (isStacked ? ' <span style="font-size:11px;font-weight:400;color:var(--text-muted)">(' + entry.percent + '+' + stacked + ')</span>' : '') + (extra > 0 && !isStacked ? ' <span style="font-size:11px;font-weight:400;color:var(--text-muted)">(' + entry.percent + '+' + extra + ')</span>' : '') + '</span>';
         if (entry.limit != null) {
           html += '<span class="cat-limit">до ' + entry.limit.toLocaleString('ru-RU') + ' ₽/мес</span>';
@@ -1490,10 +1490,13 @@ function renderBanks(app) {
           html += '<button class="stack-btn' + (isStacked ? ' active' : '') + '" onclick="event.stopPropagation();toggleStacked(\'' + bank.id + '\',\'' + escCat + '\')" title="' + (isStacked ? 'Убрать доп.' : 'Добавить доп. +' + bonusPct + '%') + '">' + (isStacked ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><polyline points="20 6 9 17 4 12"/></svg>' : '+') + (isStacked ? '' : bonusPct + '%') + '</button>';
         }
         html += '</div></div>';
-        // "Не в лимите" — ∞ button (far right edge of cat-row)
-        html += '<button class="dop-excl-toggle' + (isAlways ? ' active' : '') + '" onclick="event.stopPropagation();toggleExcludeFromLimit(\'' + escCat + '\',\'' + bank.id + '\')" title="Не в лимите" style="flex-shrink:0;opacity:' + (isAlways ? '1' : '0.35') + '">';
-        html += '<span style="font-size:18px;line-height:1;font-weight:700">∞</span>';
+        // "Не в лимите" — tag + ∞ button (far right, fixed width so no layout shift)
+        html += '<div style="display:flex;align-items:center;gap:3px;flex-shrink:0;width:68px;justify-content:flex-end">';
+        if (isAlways) html += '<span style="font-size:10px;white-space:nowrap;color:var(--green);font-weight:500">не в лимите</span>';
+        html += '<button class="dop-excl-toggle' + (isAlways ? ' active' : '') + '" onclick="event.stopPropagation();toggleExcludeFromLimit(\'' + escCat + '\',\'' + bank.id + '\')" title="Не в лимите" style="opacity:' + (isAlways ? '1' : '0.35') + '">';
+        html += '<span style="font-size:13px;line-height:1;font-weight:700">∞</span>';
         html += '</button>';
+        html += '</div>';
         if (entryNotes.length > 0 || entryLinks.length > 0) {
           html += '<button class="cat-note-toggle" onclick="event.stopPropagation();toggleNotes(this)"><span style="width:18px;height:18px">' + ICONS.chevDown + '</span></button>';
         }
