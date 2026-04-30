@@ -1369,7 +1369,7 @@ function renderSelected(app) {
         html += '<span class="sel-item-limit">до ' + item.limit.toLocaleString('ru-RU') + ' ₽</span>';
       }
       html += '</div></div>';
-      html += '<span class="sel-item-pct" style="' + bankColorStyle(item.bankName) + '">' + item.percent + '%' + (item.stacked > 0 ? ' <span style="font-size:11px;font-weight:400;opacity:0.6">(' + item.basePercent + '+' + item.stacked + ' стак)</span>' : '') + (item.extra > 0 && item.stacked <= 0 ? ' <span style="font-size:11px;font-weight:400;opacity:0.6">(' + item.basePercent + '+' + item.extra + ')</span>' : '') + '</span>';
+      html += '<span class="sel-item-pct" style="' + bankColorStyle(item.bankName) + '">' + item.percent + '%' + (item.stacked > 0 ? ' <span style="font-size:11px;font-weight:400;opacity:0.6">(' + item.basePercent + '+' + item.stacked + ' стак)</span>' : '') + (item.extra > 0 ? ' <span style="font-size:11px;font-weight:400;opacity:0.6">(' + (item.stacked > 0 ? '' : item.basePercent + '+') + item.extra + ' доп.)</span>' : '') + '</span>';
       html += '</div>';
   }
   app.innerHTML = html;
