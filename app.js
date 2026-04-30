@@ -99,12 +99,13 @@ const CHANGELOG = {
     'Группировка кнопок действий с общим контейнером',
     'Тонкий фоновый паттерн с цветовыми акцентами',
   ],
-  '2026.04.30': [
-    '«Не рекомендовать»: блокировка категорий от алгоритма рекомендаций',
-    'Удалены лишние функции: калькулятор, CSV, donut chart, глобальный поиск и др.',
-    'Вкладка «Выбранное»: упрощён дизайн, убраны лишние элементы',
-    'Код вынесен в отдельные файлы: app.js (логика), style.css (стили)',
-    'Исправлен баг: кнопка разблокировки категории не работала',
+  '2026.04.30-r2': [
+    '«Не рекомендовать»: скрыта кнопка блока при «не в лимите»',
+    'Кнопка «Отменить» (снять всё) рядом с «Месяц»',
+    'Убраны: «Выбрать всё», поиск категорий, быстрое снятие из «Выбранного»',
+    'Кнопки пина и инфо во «Выбранном» увеличены для удобства',
+    'Рамки карточек банков исправлены',
+    'Справка обновлена',
   ],
 };
 
@@ -1169,12 +1170,11 @@ function renderSelected(app) {
         html += '<span class="sel-item-limit">до ' + item.limit.toLocaleString('ru-RU') + ' ₽</span>';
       }
       html += '</div></div>';
-      // Action icons row
-      html += '<div style="display:flex;align-items:center;gap:2px;flex-shrink:0">';
-      html += '<button class="sel-quick-remove" onclick="event.stopPropagation();quickDeselectFromSelected(\'' + item.bankId + '\',\'' + escHtml(item.category).replace(/'/g, "\\'") + '\')" title="Снять"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>';
-      html += '<button class="pin-btn' + (pinned ? ' active' : '') + '" onclick="event.stopPropagation();togglePinCategory(\'' + escHtml(item.category).replace(/'/g, "\\'") + '\',\'' + escHtml(item.bankName).replace(/'/g, "\\'") + '\')" title="Закрепить"><svg viewBox="0 0 24 24" fill="currentColor" stroke="none" style="width:14px;height:14px"><path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v6h1.6v-6H18v-2l-2-2z"/></svg></button>';
+      // Action icons row (pin + info, spread for easier tapping)
+      html += '<div style="display:flex;align-items:center;gap:8px;flex-shrink:0">';
+      html += '<button class="pin-btn' + (pinned ? ' active' : '') + '" onclick="event.stopPropagation();togglePinCategory(\'' + escHtml(item.category).replace(/'/g, "\\'") + '\',\'' + escHtml(item.bankName).replace(/'/g, "\\'") + '\')" title="Закрепить" style="width:40px;height:40px"><svg viewBox="0 0 24 24" fill="currentColor" stroke="none" style="width:16px;height:16px"><path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v6h1.6v-6H18v-2l-2-2z"/></svg></button>';
       if (catNotes.length > 0) {
-        html += '<button class="cat-note-toggle" onclick="event.stopPropagation();toggleSelNotes(this)" title="Условия" style="width:28px;height:28px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg></button>';
+        html += '<button class="cat-note-toggle" onclick="event.stopPropagation();toggleSelNotes(this)" title="Условия" style="width:40px;height:40px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg></button>';
       }
       html += '</div>';
       html += '<span class="sel-item-pct" style="' + bankColorStyle(item.bankName) + '">' + item.percent + '%' + (item.stacked > 0 ? ' <span style="font-size:11px;font-weight:400;opacity:0.6">(' + item.basePercent + '+' + item.stacked + ' доп.)</span>' : '') + (item.extra > 0 ? ' <span style="font-size:11px;font-weight:400;opacity:0.6">(' + (item.stacked > 0 ? '' : item.basePercent + '+') + item.extra + ' доп.)</span>' : '') + '</span>';
@@ -1258,11 +1258,8 @@ function renderBanks(app) {
       html += '<button class="btn btn-sm btn-outline" onclick="copyPrevMonth(\'' + bank.id + '\')" style="gap:4px;min-height:36px;padding:6px 10px;font-size:12px"><span style="width:14px;height:14px">' + ICONS.clipboard + '</span>Прошлый</button>';
       html += '<button class="btn btn-sm btn-outline" onclick="openDopModal(\'' + bank.id + '\')" style="gap:4px;min-height:36px;padding:6px 10px;font-size:12px"><span style="width:14px;height:14px">' + ICONS.plus + '</span>Доп.</button>';
       html += '<button class="btn btn-sm btn-outline" onclick="newMonth(\'' + bank.id + '\')" style="gap:4px;min-height:36px;padding:6px 10px;font-size:12px"><span style="width:14px;height:14px">' + ICONS.refresh + '</span>Месяц</button>';
+      html += '<button class="btn btn-sm btn-outline" onclick="event.stopPropagation();deselectAllCategories(\'' + bank.id + '\')" style="gap:4px;min-height:36px;padding:6px 10px;font-size:12px" title="Снять все"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>Отменить</button>';
       html += '</div></div>';
-      html += '<div class="quick-actions">';
-      html += '<button class="quick-action-btn" onclick="event.stopPropagation();selectAllCategories(\'' + bank.id + '\')" title="Выбрать все"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><polyline points="20 6 9 17 4 12"/></svg> Выбрать всё</button>';
-      html += '<button class="quick-action-btn" onclick="event.stopPropagation();deselectAllCategories(\'' + bank.id + '\')" title="Снять все"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Снять всё</button>';
-      html += '</div>';
       // Limit bar
       const limitPct = maxCat > 0 ? Math.min(100, Math.round(selCount / maxCat * 100)) : 0;
       const limitClass = maxCat === 0 ? '' : selCount >= maxCat ? (selCount > maxCat ? 'over' : 'full') : '';
@@ -1276,14 +1273,7 @@ function renderBanks(app) {
       html += '</div>';
       html += '<span class="cat-limit-label">' + (maxCat > 0 ? 'лимит' : 'без лимита') + '</span>';
       html += '</div>';
-      // Category search filter (read value from existing DOM before re-render)
-      const catSearchEl = document.getElementById('catSearch-' + bank.id);
-      const catSearchVal = catSearchEl ? catSearchEl.value : '';
-      const catSearchLower = catSearchVal.toLowerCase().trim();
-      const totalCatCount = bank.coinData.cashback.entries.length + (bank.customCategories || []).length;
-      if (totalCatCount > 5) {
-        html += '<div style="padding:4px 0 8px"><input type="text" class="dop-input" id="catSearch-' + bank.id + '" placeholder="Поиск категории..." style="width:100%;font-size:13px" value="' + escHtml(catSearchVal) + '" oninput="filterCategories(\'' + bank.id + '\', this.value)" onfocus="this.select()"></div>';
-      }
+      html += '</div>';
       html += '<div class="categories-list">';
 
       const limitReached = maxCat > 0 && selCount >= maxCat;
@@ -1294,8 +1284,6 @@ function renderBanks(app) {
         // Skip duplicate category entries (only show primary / highest % row)
         if (renderedCategories.has(entry.category)) continue;
         renderedCategories.add(entry.category);
-        // Filter by search
-        if (catSearchLower && !entry.category.toLowerCase().includes(catSearchLower)) continue;
 
         const isSel = bank.selectedCategories.includes(entry.category);
         const isRec = rec.has(entry.category);
@@ -1332,11 +1320,13 @@ function renderBanks(app) {
         html += '<button class="dop-excl-toggle' + (isAlways ? ' active' : '') + '" onclick="event.stopPropagation();toggleExcludeFromLimit(\'' + escCat + '\',\'' + bank.id + '\')" title="Не в лимите" style="opacity:' + (isAlways ? '1' : '0.45') + '">';
         html += '<span style="font-size:14px;line-height:1;font-weight:700">∞</span>';
         html += '</button>';
-        // Block category button
-        const isBlk = isCategoryBlocked(entry.category);
-        html += '<button class="block-toggle' + (isBlk ? ' active' : '') + '" onclick="event.stopPropagation();toggleBlockCategory(\'' + escCat + '\')" title="' + (isBlk ? 'Включить рекомендации' : 'Не рекомендовать') + '" style="opacity:' + (isBlk ? '1' : '0.4') + '">';
-        html += '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>';
-        html += '</button>';
+        // Block category button (hide when "не в лимите" is active — illogical to block always-active category)
+        if (!isAlways) {
+          const isBlk = isCategoryBlocked(entry.category);
+          html += '<button class="block-toggle' + (isBlk ? ' active' : '') + '" onclick="event.stopPropagation();toggleBlockCategory(\'' + escCat + '\')" title="' + (isBlk ? 'Включить рекомендации' : 'Не рекомендовать') + '" style="opacity:' + (isBlk ? '1' : '0.4') + '">';
+          html += '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>';
+          html += '</button>';
+        }
         html += '</div>';
         if (entryNotes.length > 0 || entryLinks.length > 0) {
           html += '<button class="cat-note-toggle" onclick="event.stopPropagation();toggleNotes(this)"><span style="width:18px;height:18px">' + ICONS.chevDown + '</span></button>';
@@ -1352,7 +1342,6 @@ function renderBanks(app) {
       // Custom categories
       const customs = bank.customCategories || [];
       for (const cat of customs.sort((a, b) => b.percent - a.percent)) {
-        if (catSearchLower && !cat.name.toLowerCase().includes(catSearchLower)) continue;
         const isSel = bank.selectedCategories.includes(cat.name);
         const isRec = rec.has(cat.name);
         const isDisabled = !isSel && limitReached;
@@ -1373,17 +1362,6 @@ function renderBanks(app) {
 
 // ─── Actions ────────────────────────────────────────────────────────────────────
 let saveScrollBeforeRender = 0;
-
-function filterCategories(bankId, query) {
-  // Save scroll, re-render with filter, restore scroll
-  saveScrollBeforeRender = saveScroll();
-  const bank = banks.find(b => b.id === bankId);
-  if (bank) {
-    expandedBankId = bankId;
-    render();
-    restoreScroll(saveScrollBeforeRender);
-  }
-}
 
 function toggleCat(bankId, category) {
   saveScrollBeforeRender = saveScroll();

@@ -1225,25 +1225,7 @@ textarea:focus:not(:focus-visible) {
    Styling Enhancements — 15 new blocks (appended)
    ════════════════════════════════════════════════════════════════ */
 
-/* ── 1. Bank Card Left Accent Bar ── */
-@keyframes accentBarShimmer {
-  0%, 100% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-}
-.bank-card::before {
-  content: '';
-  position: absolute;
-  left: 0; top: 0; bottom: 0;
-  width: 3px;
-  background: linear-gradient(180deg,
-    var(--bank-color, var(--green)),
-    color-mix(in srgb, var(--bank-color, var(--green)) 60%, var(--yellow)),
-    var(--bank-color, var(--green)));
-  background-size: 100% 200%;
-  animation: accentBarShimmer 4s ease-in-out infinite;
-  border-radius: var(--radius) 0 0 var(--radius);
-  z-index: 1;
-}
+/* ── 1. Bank Card Left Accent Bar (kept simple, no shimmer) ── */
 html.light .bank-card::before {
   opacity: 0.7;
 }
