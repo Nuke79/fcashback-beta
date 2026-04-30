@@ -376,7 +376,7 @@ body { min-height: 100vh; -webkit-font-smoothing: antialiased; padding-bottom: e
   font-family: var(--font); transition: all 0.15s; flex-shrink: 0;
 }
 .dop-excl-toggle:hover { color: var(--text-sec); background: var(--hover-soft); }
-.dop-excl-toggle.active { color: var(--green); }
+.dop-excl-toggle.active { color: var(--green); opacity: 1 !important; }
 .dop-excl-toggle svg { width: 13px; height: 13px; }
 /* ── Empty ── */
 .empty {

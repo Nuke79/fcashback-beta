@@ -1489,13 +1489,10 @@ function renderBanks(app) {
           const bonusPct = dupGroups[entry.category].slice(1).reduce((s, e) => s + e.percent, 0);
           html += '<button class="stack-btn' + (isStacked ? ' active' : '') + '" onclick="event.stopPropagation();toggleStacked(\'' + bank.id + '\',\'' + escCat + '\')" title="' + (isStacked ? 'Убрать доп.' : 'Добавить доп. +' + bonusPct + '%') + '">' + (isStacked ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><polyline points="20 6 9 17 4 12"/></svg>' : '+') + (isStacked ? '' : bonusPct + '%') + '</button>';
         }
-        // "Не в лимите" — tag + ∞ button (far right)
-        if (isAlways) {
-          html += '<span class="dop-tag" style="margin-left:4px">не в лимите</span>';
-          html += '<button class="dop-excl-toggle active" onclick="event.stopPropagation();toggleExcludeFromLimit(\'' + escCat + '\',\'' + bank.id + '\')" title="Не в лимите" style="flex-shrink:0">';
-          html += '<span style="font-size:16px;line-height:1;font-weight:700">∞</span>';
-          html += '</button>';
-        }
+        // "Не в лимите" — ∞ button (far right, always visible)
+        html += '<button class="dop-excl-toggle' + (isAlways ? ' active' : '') + '" onclick="event.stopPropagation();toggleExcludeFromLimit(\'' + escCat + '\',\'' + bank.id + '\')" title="Не в лимите" style="flex-shrink:0;opacity:0.4">';
+        html += '<span style="font-size:16px;line-height:1;font-weight:700">∞</span>';
+        html += '</button>';
         html += '</div></div>';
         if (entryNotes.length > 0 || entryLinks.length > 0) {
           html += '<button class="cat-note-toggle" onclick="event.stopPropagation();toggleNotes(this)"><span style="width:18px;height:18px">' + ICONS.chevDown + '</span></button>';
