@@ -35,6 +35,21 @@ body { min-height: 100vh; -webkit-font-smoothing: antialiased; padding-bottom: e
   border-bottom: 1px solid var(--border);
   padding: 10px 16px;
 }
+.header::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--green), var(--yellow), var(--green));
+  background-size: 200% 100%;
+  animation: headerShimmer 6s ease-in-out infinite;
+  opacity: 0.6;
+}
+@keyframes headerShimmer {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
 .header-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .header-title { font-size: 18px; font-weight: 700; }
 .header-actions { display: flex; align-items: center; gap: 2px; flex-shrink: 0; }
@@ -57,6 +72,8 @@ body { min-height: 100vh; -webkit-font-smoothing: antialiased; padding-bottom: e
 .tab-btn svg { width: 22px; height: 22px; }
 .tab-btn.active { color: var(--green); background: rgba(34,197,94,0.08); }
 .tab-btn:not(.active):hover { color: var(--text-sec); }
+.tab-btn:active svg { transform: scale(0.88); }
+.tab-btn:active span { transform: scale(0.95); }
 
 /* ── Main ── */
 .main { max-width: 900px; margin: 0 auto; padding: 16px 12px 90px; }
@@ -130,8 +147,18 @@ body { min-height: 100vh; -webkit-font-smoothing: antialiased; padding-bottom: e
   display: flex; flex-direction: column; align-items: center;
   padding: 60px 20px; gap: 12px; text-align: center;
 }
-.sel-empty svg { color: var(--text-muted); opacity: 0.3; }
+.sel-empty svg { color: var(--text-muted); opacity: 0.2; }
 .sel-empty p { font-size: 14px; color: var(--text-muted); line-height: 1.6; }
+.sel-empty .sel-empty-hint {
+  display: inline-flex; align-items: center; gap: 4px;
+  margin-top: 4px; padding: 6px 12px;
+  border-radius: var(--radius-sm); border: 1px solid var(--border);
+  background: var(--hover-faint); color: var(--text-sec);
+  font-size: 13px; cursor: pointer; transition: all 0.15s;
+}
+.sel-empty .sel-empty-hint:hover {
+  border-color: var(--green); color: var(--green);
+}
 
 /* ── Bank Cards Grid ── */
 .bank-grid { display: grid; gap: 0; grid-template-columns: 1fr; }
@@ -217,11 +244,21 @@ body { min-height: 100vh; -webkit-font-smoothing: antialiased; padding-bottom: e
 .cat-row.recommended.checked {
   border-left: 3px solid #eab308;
 }
+.cat-row.excluded {
+  border-left: 3px solid var(--green) !important;
+  background: color-mix(in srgb, var(--green) 4%, transparent);
+}
+.cat-row.excluded.checked {
+  background: color-mix(in srgb, var(--green) 8%, transparent);
+  border-color: color-mix(in srgb, var(--green) 30%, transparent);
+}
 .cat-checkbox {
   width: 24px; height: 24px; border-radius: 6px; flex-shrink: 0;
   border: 2px solid var(--border-hi); display: flex;
-  align-items: center; justify-content: center; transition: all 0.15s;
+  align-items: center; justify-content: center;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64 1);
 }
+.cat-row:active .cat-checkbox { transform: scale(0.85); transition: transform 0.1s ease; }
 .cat-row.checked .cat-checkbox {
   background: var(--bank-color, var(--green)); border-color: var(--bank-color, var(--green));
 }
@@ -290,8 +327,19 @@ body { min-height: 100vh; -webkit-font-smoothing: antialiased; padding-bottom: e
 }
 .cat-limit-progress-fill { height: 100%; border-radius: 2px; transition: width 0.2s, background 0.2s; }
 .cat-limit-progress-fill.ok { background: var(--green); }
-.cat-limit-progress-fill.full { background: var(--yellow); }
-.cat-limit-progress-fill.over { background: var(--red); }
+.cat-limit-progress-fill.full {
+  background: var(--yellow);
+  box-shadow: 0 0 8px rgba(234,179,8,0.4);
+}
+.cat-limit-progress-fill.over {
+  background: var(--red);
+  box-shadow: 0 0 8px rgba(239,68,68,0.4);
+  animation: limitPulse 1.5s ease infinite;
+}
+@keyframes limitPulse {
+  0%, 100% { box-shadow: 0 0 4px rgba(239,68,68,0.3); }
+  50%      { box-shadow: 0 0 12px rgba(239,68,68,0.6); }
+}
 
 /* ── Dop Categories ── */
 .dop-tag {
@@ -713,3 +761,1038 @@ html.light .screenshot-example { background: rgba(0,0,0,0.03); }
   border-top: 1px solid var(--border);
   font-size: 11px; color: var(--text-muted); text-align: center;
 }
+
+/* ── Staggered Entrance Animation ── */
+@keyframes catFadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.categories-list .cat-row { animation: catFadeIn 0.2s ease both; }
+.categories-list .cat-row:nth-child(1) { animation-delay: 0.00s; }
+.categories-list .cat-row:nth-child(2) { animation-delay: 0.02s; }
+.categories-list .cat-row:nth-child(3) { animation-delay: 0.04s; }
+.categories-list .cat-row:nth-child(4) { animation-delay: 0.06s; }
+.categories-list .cat-row:nth-child(5) { animation-delay: 0.08s; }
+.categories-list .cat-row:nth-child(6) { animation-delay: 0.10s; }
+.categories-list .cat-row:nth-child(7) { animation-delay: 0.12s; }
+.categories-list .cat-row:nth-child(8) { animation-delay: 0.14s; }
+.categories-list .cat-row:nth-child(n+9) { animation-delay: 0.14s; }
+.sel-item { animation: catFadeIn 0.2s ease both; }
+.sel-item:nth-child(1) { animation-delay: 0.00s; }
+.sel-item:nth-child(2) { animation-delay: 0.03s; }
+.sel-item:nth-child(3) { animation-delay: 0.06s; }
+.sel-item:nth-child(n+4) { animation-delay: 0.06s; }
+
+/* ── Toast with Undo ── */
+.toast-undo {
+  cursor: pointer; pointer-events: auto; white-space: nowrap;
+  color: var(--green); font-weight: 600; text-decoration: underline;
+  margin-left: 8px;
+}
+
+/* ── Bank card done state ── */
+.bank-card.done .bc-header::after {
+  content: '✓';
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 22px; height: 22px; border-radius: 50%;
+  background: var(--green); color: #fff;
+  font-size: 12px; font-weight: 700; flex-shrink: 0;
+  margin-left: 8px;
+}
+
+/* ── Enhanced Category Row Hover ── */
+.cat-row {
+  position: relative;
+}
+.cat-row::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-sm);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+}
+.cat-row:not(.disabled):hover::before {
+  opacity: 1;
+  background: var(--hover-faint);
+}
+
+/* ── Better Checkbox Animation ── */
+@keyframes checkPop {
+  0% { transform: scale(0); opacity: 0; }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); opacity: 1; }
+}
+.cat-row.checked .cat-checkbox svg {
+  animation: checkPop 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ── ∞ Button Hover Enhancement ── */
+.dop-excl-toggle {
+  transition: all 0.2s ease;
+}
+.dop-excl-toggle:not(.active):hover {
+  opacity: 0.85 !important;
+  transform: scale(1.15);
+}
+.dop-excl-toggle.active {
+  animation: exclPulse 0.3s ease;
+}
+@keyframes exclPulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+/* ── Bank Card Subtle Hover ── */
+.bank-card {
+  transition: all 0.25s ease;
+}
+.bank-card:not(.expanded):hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 24px rgba(0,0,0,0.15);
+}
+
+/* ── Tab Bar Indicator ── */
+.tab-btn {
+  position: relative;
+}
+.tab-btn.active::after {
+  content: '';
+  position: absolute;
+  top: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 20px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--green);
+}
+
+/* ── Selected Item Bank Color Accent ── */
+.sel-item {
+  transition: all 0.2s ease;
+}
+.sel-item:hover {
+  transform: translateX(2px);
+  border-color: var(--border-hi);
+}
+
+/* ── Header Title Subtle Animation ── */
+.header-title {
+  transition: opacity 0.15s ease;
+}
+.header-title:active {
+  opacity: 0.7;
+}
+
+/* ── Modal Backdrop Blur ── */
+.overlay {
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+/* ── Smooth Scrollbar for Categories ── */
+.categories-list::-webkit-scrollbar {
+  width: 4px;
+}
+.categories-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+.categories-list::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 2px;
+}
+.categories-list::-webkit-scrollbar-thumb:hover {
+  background: var(--border-hi);
+}
+
+/* ── Badge Pulse on Update ── */
+@keyframes badgePop {
+  0% { transform: scale(1); }
+  30% { transform: scale(1.3); }
+  100% { transform: scale(1); }
+}
+
+/* ── Touch feedback ── */
+.cat-row, .sel-item, .btn, .tab-btn, .action-card,
+.screenshot-link, .bank-card {
+  -webkit-tap-highlight-color: transparent;
+}
+.cat-row:active, .sel-item:active {
+  transform: scale(0.985);
+  transition: transform 0.1s ease;
+}
+
+/* ── Focus-visible for keyboard navigation ── */
+.btn:focus-visible, .tab-btn:focus-visible, .action-card:focus-visible,
+.cat-row:focus-visible, .stack-btn:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 2px;
+}
+input:focus-visible, textarea:focus-visible, select:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 1px;
+}
+
+/* ── Reminder bell pulse ── */
+@keyframes bellPulse {
+  0%, 100% { transform: rotate(0deg); }
+  10% { transform: rotate(14deg); }
+  20% { transform: rotate(-14deg); }
+  30% { transform: rotate(10deg); }
+  40% { transform: rotate(-8deg); }
+  50% { transform: rotate(0deg); }
+}
+.reminder-banner.show .reminder-icon svg {
+  animation: bellPulse 2.5s ease-in-out infinite;
+}
+
+/* ── Bank card smooth expand ── */
+.bank-card .categories {
+  animation: cardExpandIn 0.25s ease;
+}
+@keyframes cardExpandIn {
+  from { opacity: 0; max-height: 0; }
+  to { opacity: 1; max-height: 2000px; }
+}
+
+/* ── Stat card dark mode fix ── */
+html:not(.light) .sel-stat-card-green {
+  background: linear-gradient(135deg, rgba(34,197,94,0.15), rgba(34,197,94,0.04)) !important;
+  border-color: rgba(34,197,94,0.3) !important;
+}
+html:not(.light) .sel-stat-card-yellow {
+  background: linear-gradient(135deg, rgba(234,179,8,0.15), rgba(234,179,8,0.04)) !important;
+  border-color: rgba(234,179,8,0.3) !important;
+}
+
+/* ── Empty state visual improvement ── */
+.sel-empty {
+  position: relative;
+}
+.sel-empty::before {
+  content: '';
+  position: absolute;
+  width: 120px; height: 120px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(34,197,94,0.08), transparent 70%);
+  top: 30px;
+  pointer-events: none;
+}
+
+/* ── Quick Action Buttons ── */
+.quick-actions {
+  display: flex; gap: 6px; margin-bottom: 10px;
+}
+.quick-action-btn {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 5px 10px; border-radius: 6px;
+  border: 1px solid var(--border); background: var(--hover-faint);
+  color: var(--text-sec); font-size: 12px; cursor: pointer;
+  font-family: var(--font); transition: all 0.15s;
+}
+.quick-action-btn:hover {
+  border-color: var(--border-hi);
+  color: var(--text);
+  background: var(--hover-soft);
+}
+.quick-action-btn svg { width: 14px; height: 14px; }
+
+/* ── Tooltip ── */
+.cat-tooltip {
+  position: absolute; bottom: calc(100% + 6px);
+  left: 50%; transform: translateX(-50%);
+ padding: 6px 10px; border-radius: 6px;
+  background: var(--bg-card); border: 1px solid var(--border);
+  color: var(--text-sec); font-size: 12px; line-height: 1.4;
+  white-space: nowrap; z-index: 20;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  pointer-events: none;
+  animation: tooltipIn 0.15s ease;
+}
+@keyframes tooltipIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(4px); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+/* ── Onboarding slide animation ── */
+.onboarding-icon {
+  transition: transform 0.3s ease;
+}
+.onboarding-slide.active .onboarding-icon {
+  animation: iconFloat 3s ease-in-out infinite;
+}
+@keyframes iconFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+/* ── Quick Action Buttons ── */
+.quick-actions {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.quick-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--hover-faint);
+  color: var(--text-sec);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: var(--font);
+  white-space: nowrap;
+}
+.quick-action-btn:hover {
+  border-color: var(--green);
+  color: var(--green);
+  background: rgba(34, 197, 94, 0.06);
+}
+.quick-action-btn:active {
+  transform: scale(0.96);
+}
+
+/* ── Categories List Smooth Scrollbar ── */
+.categories-list::-webkit-scrollbar {
+  width: 4px;
+}
+.categories-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+.categories-list::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 2px;
+}
+.categories-list::-webkit-scrollbar-thumb:hover {
+  background: var(--border-hi);
+}
+
+/* ── Bank Card Left Accent ── */
+.bank-card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--bank-color, var(--border));
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  border-radius: var(--radius) 0 0 var(--radius);
+}
+.bank-card {
+  position: relative;
+}
+.bank-card.empty-alert::before {
+  background: #eab308;
+  opacity: 0.4;
+}
+.bank-card.selected::before {
+  opacity: 0.6;
+}
+.bank-card.expanded::before {
+  opacity: 1;
+}
+
+/* ── Active Tab Glow ── */
+.tab-btn.active {
+  box-shadow: 0 0 12px rgba(34, 197, 94, 0.08);
+}
+
+/* ── Header Enhanced Glassmorphism ── */
+.header {
+  backdrop-filter: blur(20px) saturate(1.2);
+  -webkit-backdrop-filter: blur(20px) saturate(1.2);
+}
+
+/* ── Category Row Smooth Expand ── */
+.categories {
+  animation: categoriesExpand 0.25s ease;
+}
+@keyframes categoriesExpand {
+  from { opacity: 0; max-height: 0; }
+  to { opacity: 1; max-height: 2000px; }
+}
+
+/* ── Selected Item Color Accent Bar ── */
+.sel-item {
+  position: relative;
+  overflow: hidden;
+}
+.sel-item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--item-color, var(--green));
+  opacity: 0.5;
+  border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+  transition: opacity 0.2s ease;
+}
+.sel-item:hover::before {
+  opacity: 0.8;
+}
+
+/* ── Ripple Effect ── */
+@keyframes rippleEffect {
+  0% { transform: scale(0); opacity: 0.3; }
+  100% { transform: scale(4); opacity: 0; }
+}
+
+/* ── Undo Toast Enhancement ── */
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.toast-undo {
+  cursor: pointer;
+  pointer-events: auto;
+  white-space: nowrap;
+  color: var(--green);
+  font-weight: 600;
+  text-decoration: underline;
+  margin-left: 8px;
+  text-decoration-style: dotted;
+  text-underline-offset: 2px;
+}
+
+/* ── Dark Mode Specific Enhancements ── */
+html:not(.light) .sel-stat-card-green {
+  background: linear-gradient(135deg, rgba(34,197,94,0.12), rgba(34,197,94,0.04)) !important;
+  border-color: rgba(34,197,94,0.25) !important;
+}
+html:not(.light) .sel-stat-card-yellow {
+  background: linear-gradient(135deg, rgba(234,179,8,0.12), rgba(234,179,8,0.04)) !important;
+  border-color: rgba(234,179,8,0.25) !important;
+}
+
+/* ── Focus Visible Global ── */
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 2px;
+}
+button:focus:not(:focus-visible),
+input:focus:not(:focus-visible),
+textarea:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* ── Touch Friendly Improvements ── */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ── Onboarding Icon Float ── */
+.onboarding-slide.active .onboarding-icon svg {
+  animation: iconFloat 3s ease-in-out infinite;
+}
+@keyframes iconFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+/* ── Reminder Bell Pulse ── */
+.reminder-banner.show .reminder-icon svg {
+  animation: bellSwing 1s ease-in-out infinite;
+}
+@keyframes bellSwing {
+  0%, 100% { transform: rotate(0); }
+  25% { transform: rotate(8deg); }
+  75% { transform: rotate(-8deg); }
+}
+
+/* ── Empty State Glow ── */
+.sel-empty svg {
+  filter: drop-shadow(0 0 20px rgba(34, 197, 94, 0.15));
+}
+
+/* ════════════════════════════════════════════════════════════════
+   Styling Enhancements — 15 new blocks (appended)
+   ════════════════════════════════════════════════════════════════ */
+
+/* ── 1. Bank Card Left Accent Bar ── */
+@keyframes accentBarShimmer {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+.bank-card::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  background: linear-gradient(180deg,
+    var(--bank-color, var(--green)),
+    color-mix(in srgb, var(--bank-color, var(--green)) 60%, var(--yellow)),
+    var(--bank-color, var(--green)));
+  background-size: 100% 200%;
+  animation: accentBarShimmer 4s ease-in-out infinite;
+  border-radius: var(--radius) 0 0 var(--radius);
+  z-index: 1;
+}
+html.light .bank-card::before {
+  opacity: 0.7;
+}
+
+/* ── 2. High % Category Row Glow ── */
+.cat-row.high-pct {
+  box-shadow: 0 0 0 0 rgba(34,197,94,0);
+  transition: box-shadow 0.3s ease;
+}
+html:not(.light) .cat-row.high-pct.checked {
+  box-shadow: 0 0 12px -2px rgba(34,197,94,0.15);
+}
+html.light .cat-row.high-pct.checked {
+  box-shadow: 0 0 12px -2px rgba(34,197,94,0.1);
+}
+
+/* ── 3. Enhanced Empty State Background ── */
+@keyframes emptyRadialPulse {
+  0%, 100% { background-position: center; background-size: 100% 100%; }
+  50% { background-position: center; background-size: 140% 140%; }
+}
+.sel-empty {
+  background: radial-gradient(ellipse at center,
+    rgba(34,197,94,0.04) 0%,
+    transparent 70%);
+  background-size: 100% 100%;
+  animation: emptyRadialPulse 6s ease-in-out infinite;
+  border-radius: var(--radius);
+}
+html.light .sel-empty {
+  background: radial-gradient(ellipse at center,
+    rgba(34,197,94,0.03) 0%,
+    transparent 70%);
+}
+
+/* ── 4. Enhanced Focus Ring (green glow) ── */
+.btn:focus-visible,
+.tab-btn:focus-visible,
+.action-card:focus-visible,
+.cat-row:focus-visible,
+.stack-btn:focus-visible,
+.dop-excl-toggle:focus-visible,
+.cat-limit-btn:focus-visible,
+.reminder-cal-btn:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(34,197,94,0.15);
+}
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 1px;
+  box-shadow: 0 0 0 3px rgba(34,197,94,0.12);
+}
+
+/* ── 6. Category Limit Bar Gradient Fill ── */
+.cat-limit-progress-fill.ok {
+  background: linear-gradient(90deg, var(--green), var(--lime));
+  background-size: 200% 100%;
+  animation: progressGradient 3s ease-in-out infinite;
+}
+@keyframes progressGradient {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+/* ── 7. Onboarding Dots Wave Animation ── */
+.onboarding-dot.active {
+  animation: dotWave 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes dotWave {
+  0% { transform: scale(0.6); opacity: 0.5; }
+  50% { transform: scale(1.15); }
+  100% { transform: scale(1); opacity: 1; }
+}
+.onboarding-dots .onboarding-dot:nth-child(2).active {
+  animation-delay: 0.05s;
+}
+.onboarding-dots .onboarding-dot:nth-child(3).active {
+  animation-delay: 0.1s;
+}
+
+/* ── 8. Bank Card Expanded Top Line ── */
+.bank-card.expanded::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--green), var(--yellow));
+  border-radius: var(--radius) var(--radius) 0 0;
+  z-index: 2;
+}
+html.light .bank-card.expanded::after {
+  opacity: 0.8;
+}
+
+/* ── 9. Toast Glass Effect ── */
+html:not(.light) .toast {
+  background: rgba(30,41,59,0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,0.08);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.04);
+}
+html.light .toast {
+  background: rgba(255,255,255,0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(0,0,0,0.06);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.08), 0 0 0 1px rgba(0,0,0,0.04);
+}
+
+/* ── 10. Card Icon 3D Hover ── */
+.bank-card:not(.expanded) .card-icon {
+  transition: transform 0.25s ease;
+  transform-style: preserve-3d;
+  perspective: 200px;
+}
+.bank-card:not(.expanded) .card-icon:hover {
+  transform: rotateY(12deg) scale(1.05);
+}
+@media (hover: none) {
+  .bank-card:not(.expanded) .card-icon:hover {
+    transform: none;
+  }
+}
+
+/* ── 11. Selected Item Color Bar (enhanced gradient) ── */
+html:not(.light) .sel-item::before {
+  background: linear-gradient(180deg,
+    var(--item-color, var(--green)),
+    color-mix(in srgb, var(--item-color, var(--green)) 50%, transparent));
+  opacity: 0.6;
+}
+html:not(.light) .sel-item:hover::before {
+  opacity: 1;
+}
+html.light .sel-item::before {
+  opacity: 0.35;
+}
+html.light .sel-item:hover::before {
+  opacity: 0.6;
+}
+
+/* ── 12. Modal Scrollbar ── */
+.modal::-webkit-scrollbar {
+  width: 4px;
+}
+.modal::-webkit-scrollbar-track {
+  background: transparent;
+}
+.modal::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 2px;
+}
+html:not(.light) .modal::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.1);
+}
+html.light .modal::-webkit-scrollbar-thumb {
+  background: rgba(0,0,0,0.12);
+}
+.modal::-webkit-scrollbar-thumb:hover {
+  background: var(--border-hi);
+}
+
+/* ── 13. Tab Switch Slide Animation ── */
+.tab-btn.active {
+  position: relative;
+}
+.tab-btn.active::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 15%;
+  right: 15%;
+  height: 2px;
+  background: var(--green);
+  border-radius: 1px;
+  animation: tabSlideUp 0.25s ease-out;
+}
+@keyframes tabSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scaleX(0.5);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scaleX(1);
+  }
+}
+
+/* ── 14. Category Notes Box Gradient Border ── */
+.cat-notes-box {
+  border-left: 2px solid transparent;
+  border-image: linear-gradient(180deg,
+    var(--bank-color, var(--green)),
+    transparent) 1;
+  padding-left: 48px;
+}
+html.light .cat-notes-box {
+  border-image: linear-gradient(180deg,
+    color-mix(in srgb, var(--bank-color, var(--green)) 50%, transparent),
+    transparent) 1;
+}
+
+/* ── 15. Header Title BETA Glow ── */
+.header-title span {
+  text-shadow: 0 0 8px rgba(234,179,8,0.3);
+  animation: betaGlow 3s ease-in-out infinite;
+}
+@keyframes betaGlow {
+  0%, 100% { text-shadow: 0 0 6px rgba(234,179,8,0.2); }
+  50% { text-shadow: 0 0 12px rgba(234,179,8,0.4); }
+}
+html.light .header-title span {
+  text-shadow: 0 0 6px rgba(234,179,8,0.15);
+  animation: betaGlowLight 3s ease-in-out infinite;
+}
+@keyframes betaGlowLight {
+  0%, 100% { text-shadow: 0 0 4px rgba(234,179,8,0.1); }
+  50% { text-shadow: 0 0 8px rgba(234,179,8,0.25); }
+}
+
+/* ── v2025.06.11: Bank Card Staggered Entrance Animation ── */
+@keyframes bankCardFadeIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.bank-grid .bank-card { animation: bankCardFadeIn 0.35s ease both; }
+.bank-grid .bank-card:nth-child(1) { animation-delay: 0.00s; }
+.bank-grid .bank-card:nth-child(2) { animation-delay: 0.06s; }
+.bank-grid .bank-card:nth-child(3) { animation-delay: 0.12s; }
+.bank-grid .bank-card:nth-child(4) { animation-delay: 0.18s; }
+.bank-grid .bank-card:nth-child(n+5) { animation-delay: 0.18s; }
+
+/* ── v2025.06.11: Category Row 5%+ Glow Enhancement ── */
+.cat-row.high-pct.checked {
+  border-left: 3px solid var(--green) !important;
+  background: color-mix(in srgb, var(--green) 6%, transparent) !important;
+}
+html:not(.light) .cat-row.high-pct.checked {
+  box-shadow: 0 0 12px -2px rgba(34,197,94,0.15), inset 3px 0 8px -3px rgba(34,197,94,0.1);
+}
+html.light .cat-row.high-pct.checked {
+  box-shadow: 0 0 12px -2px rgba(34,197,94,0.1), inset 3px 0 8px -3px rgba(34,197,94,0.06);
+}
+
+/* ── v2025.06.11: Smooth Tab Content Transition ── */
+@keyframes tabContentFadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.main.tab-transition {
+  animation: tabContentFadeIn 0.25s ease;
+}
+
+/* ── v2025.06.11: Better Empty State with Animated Background ── */
+@keyframes emptyPulse {
+  0%, 100% { opacity: 0.5; transform: scale(0.95); }
+  50%      { opacity: 1;   transform: scale(1.05); }
+}
+.sel-empty svg {
+  filter: drop-shadow(0 0 12px rgba(34,197,94,0.2));
+  animation: emptyPulse 4s ease-in-out infinite;
+}
+html.light .sel-empty svg {
+  filter: drop-shadow(0 0 10px rgba(34,197,94,0.1));
+}
+
+/* ── v2025.06.11: Onboarding Slide Transitions ── */
+@keyframes onboardingSlideInRight {
+  from { opacity: 0; transform: translateX(40px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes onboardingSlideOutLeft {
+  from { opacity: 1; transform: translateX(0); }
+  to   { opacity: 0; transform: translateX(-40px); }
+}
+.onboarding-slide.slide-in-right {
+  animation: onboardingSlideInRight 0.3s ease forwards;
+}
+.onboarding-slide.slide-out-left {
+  animation: onboardingSlideOutLeft 0.25s ease forwards;
+}
+
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/* ── v2025.06.11: Category Notes Inline in Selected ── */
+.sel-cat-notes {
+  padding: 4px 14px 10px 50px;
+  animation: catFadeIn 0.2s ease;
+}
+.sel-cat-notes-text {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.6;
+  padding: 6px 10px;
+  background: var(--hover-soft);
+  border-radius: 6px;
+  border-left: 2px solid var(--green);
+}
+
+/* ── v2025.06.11: Better Responsive for Tablets ── */
+@media (min-width: 768px) {
+  .bank-grid:not(.has-expanded) { grid-template-columns: repeat(2, 1fr); }
+  .sel-item { padding: 16px 18px; }
+  .header-actions { gap: 4px; }
+}
+@media (min-width: 1024px) {
+  .main { max-width: 1024px; }
+}
+
+/* ── Block Category (Don't Recommend) ── */
+.block-toggle {
+  display: flex; align-items: center; gap: 2px;
+  padding: 4px; width: 28px; height: 28px; border: none;
+  background: transparent; color: var(--text-muted); cursor: pointer;
+  border-radius: 6px; font-family: var(--font);
+  transition: all 0.15s; flex-shrink: 0; opacity: 0.4;
+}
+.block-toggle:hover { opacity: 0.7; background: var(--tag-bg); }
+.block-toggle.active { color: var(--red); opacity: 0.7; }
+.block-toggle.active:hover { opacity: 1; background: rgba(239,68,68,0.08); }
+.block-toggle svg { width: 14px; height: 14px; }
+
+.cat-row.blocked {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.cat-row.blocked .block-toggle {
+  pointer-events: auto;
+  opacity: 0.7;
+}
+.cat-row.blocked .cat-checkbox {
+  border-style: dashed;
+  border-color: var(--text-muted);
+}
+
+/* ── Accessibility: Disable Animations ── */
+@media (prefers-reduced-motion: reduce) {
+  .bank-card::before,
+  .sel-empty,
+  .sel-empty svg,
+  .cat-limit-progress-fill.ok,
+  .onboarding-dot.active,
+  .bank-card.expanded::after,
+  .bank-card:not(.expanded) .card-icon:hover,
+  .tab-btn.active::before,
+  .header-title span,
+  .onboarding-slide.active .onboarding-icon svg,
+  .reminder-banner.show .reminder-icon svg,
+  .bank-grid .bank-card,
+  .main.tab-transition,
+  .onboarding-slide.slide-in-right,
+  .onboarding-slide.slide-out-left {
+    animation: none !important;
+  }
+  .bank-card:not(.expanded) .card-icon:hover {
+    transform: none !important;
+  }
+}
+
+/* ── 2025.06.12: Animated Gradient Shimmer on Stat Cards ── */
+@keyframes statCardShimmer {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+.sel-stat-card-green, .sel-stat-card-yellow {
+  background-size: 200% 200% !important;
+  animation: statCardShimmer 8s ease-in-out infinite;
+}
+
+/* ── 2025.06.12: Bank Card Hover Glow Effect ── */
+.bank-card:not(.expanded):hover {
+  box-shadow: 0 4px 20px color-mix(in srgb, var(--bank-color, var(--green)) 15%, transparent),
+              0 8px 32px rgba(0,0,0,0.12) !important;
+}
+
+/* ── 2025.06.12: Modal Scale Entrance Animation ── */
+@keyframes modalScaleIn {
+  from { transform: scale(0.95) translateY(10px); opacity: 0; }
+  to { transform: scale(1) translateY(0); opacity: 1; }
+}
+.modal {
+  animation: modalScaleIn 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+}
+
+/* ── 2025.06.12: Improved Custom Scrollbars (global) ── */
+.categories-list::-webkit-scrollbar,
+/* ── 2025.06.12: Better Dark Mode Card Backgrounds ── */
+html:not(.light) .sel-stat-card-green {
+  background: linear-gradient(135deg, rgba(34,197,94,0.15), rgba(34,197,94,0.03)) !important;
+}
+html:not(.light) .sel-stat-card-yellow {
+  background: linear-gradient(135deg, rgba(234,179,8,0.15), rgba(234,179,8,0.03)) !important;
+}
+/* ── 2025.06.12: Category Selection Checkmark Animation Enhancement ── */
+.cat-row.checked .cat-checkbox {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--bank-color, var(--green)) 20%, transparent);
+}
+
+/* ── 2025.06.12: Pinned Category Styles ── */
+.sel-item.pinned {
+  border-left: 3px solid #eab308;
+  background: linear-gradient(90deg, rgba(234,179,8,0.04), transparent);
+}
+.sel-item.pinned .pin-icon {
+  color: #eab308;
+  opacity: 1;
+}
+.pin-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  opacity: 0.4;
+  transition: all 0.2s;
+}
+.pin-btn:hover { opacity: 0.8; }
+.pin-btn.active { color: #eab308; opacity: 1; }
+
+/* ── Animated Number Counter ── */
+@keyframes countUp {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.sel-stat-card-green > div:last-child,
+.sel-stat-card-yellow > div:last-child {
+  animation: countUp 0.4s ease-out;
+}
+
+/* ── Category Row Tap Highlight ── */
+.cat-row {
+  position: relative;
+}
+.cat-row::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--hover-soft);
+  border-radius: var(--radius-sm);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  pointer-events: none;
+}
+.cat-row:active::after {
+  opacity: 1;
+}
+
+/* ── Chart Tooltip ── */
+
+/* ── Improved Focus Ring ── */
+*:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--green);
+  transition: box-shadow 0.15s ease;
+}
+
+/* ── Smooth Tab Content Transition ── */
+.main.tab-enter {
+  animation: tabContentEnter 0.25s ease-out;
+}
+@keyframes tabContentEnter {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Better Empty State Bounce ── */
+.sel-empty svg {
+  animation: emptyBounce 2s ease-in-out infinite;
+}
+@keyframes emptyBounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+/* ════════════════════════════════════════════════════════════════
+   v2025.06.14 — Styling + Features
+   ════════════════════════════════════════════════════════════════ */
+
+/* ── 1. Glassmorphism on Modals ── */
+.modal {
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  background: color-mix(in srgb, var(--bg-card) 85%, transparent);
+}
+
+/* ── 2. Animated Gradient Border on Selected Items (enhance existing) ── */
+.sel-item::before {
+  background: linear-gradient(180deg, var(--item-color, var(--green)), transparent);
+  border-radius: 3px 0 0 3px;
+  opacity: 0.6;
+  transition: opacity 0.2s ease, width 0.2s ease;
+}
+html:not(.light) .sel-item::before {
+  background: linear-gradient(180deg,
+    var(--item-color, var(--green)),
+    color-mix(in srgb, var(--item-color, var(--green)) 50%, transparent));
+  opacity: 0.6;
+}
+html:not(.light) .sel-item:hover::before {
+  opacity: 1;
+}
+html.light .sel-item::before {
+  opacity: 0.35;
+}
+html.light .sel-item:hover::before {
+  opacity: 0.6;
+}
+.sel-item:hover::before {
+  opacity: 1;
+  width: 4px;
+}
+
+/* ── 3. Quick Deselect Button ── */
+.sel-quick-remove {
+  width: 28px; height: 28px; border-radius: 6px; border: none;
+  background: transparent; color: var(--text-muted); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s; font-size: 16px; flex-shrink: 0;
+  font-family: var(--font); padding: 0;
+}
+.sel-quick-remove:hover {
+  background: rgba(239,68,68,0.1);
+  color: var(--red);
+}
+
+/* ── 6. Toast Glassmorphism Enhancement ── */
+.toast {
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  background: color-mix(in srgb, var(--bg-card) 80%, transparent) !important;
+}
+
+/* ── 8. Subtle Background Pattern ── */
+body::before {
+  content: ''; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background: radial-gradient(circle at 20% 50%, rgba(34,197,94,0.03) 0%, transparent 50%),
+              radial-gradient(circle at 80% 20%, rgba(234,179,8,0.02) 0%, transparent 50%);
+}
+html.light body::before { display: none; }
+
+/* ── 9. Better Tab Bar Animation ── */
+.tab-btn::after { transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1); }
