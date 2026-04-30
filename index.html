@@ -1367,6 +1367,26 @@ function renderSelected(app) {
 
   let html = '<div class="sel-header"><span class="sel-title">Выбранные категории</span><span class="sel-count">' + items.length + ' шт.</span></div>';
 
+  // Summary stats: total banks, top cashback
+  const uniqueBanks = new Set(items.map(i => i.bankName));
+  const topItem = items.length > 0 ? items.reduce((best, i) => i.percent > best.percent ? i : best, items[0]) : null;
+  if (items.length > 0) {
+    html += '<div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">';
+    html += '<div style="flex:1;min-width:100px;padding:10px 12px;background:var(--bg-card);border-radius:var(--radius-sm);border:1px solid var(--border)">';
+    html += '<div style="font-size:11px;color:var(--text-muted);margin-bottom:2px">Банков</div>';
+    html += '<div style="font-size:18px;font-weight:700;color:var(--text)">' + uniqueBanks.size + '</div>';
+    html += '</div>';
+    html += '<div style="flex:1;min-width:100px;padding:10px 12px;background:var(--bg-card);border-radius:var(--radius-sm);border:1px solid var(--border)">';
+    html += '<div style="font-size:11px;color:var(--text-muted);margin-bottom:2px">Макс. %</div>';
+    html += '<div style="font-size:18px;font-weight:700;color:' + (topItem ? topItem.bankColor : 'var(--text)') + '">' + (topItem ? topItem.percent : 0) + '%</div>';
+    html += '</div>';
+    html += '<div style="flex:1;min-width:100px;padding:10px 12px;background:var(--bg-card);border-radius:var(--radius-sm);border:1px solid var(--border)">';
+    html += '<div style="font-size:11px;color:var(--text-muted);margin-bottom:2px">Категорий</div>';
+    html += '<div style="font-size:18px;font-weight:700;color:var(--text)">' + items.length + '</div>';
+    html += '</div>';
+    html += '</div>';
+  }
+
   for (const item of items) {
       const isWhite = item.bankColor === DEFAULT_COLOR.color;
       const cardCls = 'card-icon' + (isWhite ? ' white-card' : '');
@@ -1460,6 +1480,14 @@ function renderBanks(app) {
       html += '</div>';
       html += '<span class="cat-limit-label">' + (maxCat > 0 ? 'лимит' : 'без лимита') + '</span>';
       html += '</div>';
+      // Category search filter (read value from existing DOM before re-render)
+      const catSearchEl = document.getElementById('catSearch-' + bank.id);
+      const catSearchVal = catSearchEl ? catSearchEl.value : '';
+      const catSearchLower = catSearchVal.toLowerCase().trim();
+      const totalCatCount = bank.coinData.cashback.entries.length + (bank.customCategories || []).length;
+      if (totalCatCount > 5) {
+        html += '<div style="padding:4px 0 8px"><input type="text" class="dop-input" id="catSearch-' + bank.id + '" placeholder="Поиск категории..." style="width:100%;font-size:13px" value="' + escHtml(catSearchVal) + '" oninput="filterCategories(\'' + bank.id + '\', this.value)" onfocus="this.select()"></div>';
+      }
       html += '<div class="categories-list">';
 
       const limitReached = maxCat > 0 && selCount >= maxCat;
@@ -1470,6 +1498,8 @@ function renderBanks(app) {
         // Skip duplicate category entries (only show primary / highest % row)
         if (renderedCategories.has(entry.category)) continue;
         renderedCategories.add(entry.category);
+        // Filter by search
+        if (catSearchLower && !entry.category.toLowerCase().includes(catSearchLower)) continue;
 
         const isSel = bank.selectedCategories.includes(entry.category);
         const isRec = rec.has(entry.category);
@@ -1518,6 +1548,7 @@ function renderBanks(app) {
       // Custom categories
       const customs = bank.customCategories || [];
       for (const cat of customs.sort((a, b) => b.percent - a.percent)) {
+        if (catSearchLower && !cat.name.toLowerCase().includes(catSearchLower)) continue;
         const isSel = bank.selectedCategories.includes(cat.name);
         const isRec = rec.has(cat.name);
         const isDisabled = !isSel && limitReached;
@@ -1538,6 +1569,17 @@ function renderBanks(app) {
 
 // ─── Actions ────────────────────────────────────────────────────────────────────
 let saveScrollBeforeRender = 0;
+
+function filterCategories(bankId, query) {
+  // Save scroll, re-render with filter, restore scroll
+  saveScrollBeforeRender = saveScroll();
+  const bank = banks.find(b => b.id === bankId);
+  if (bank) {
+    expandedBankId = bankId;
+    render();
+    restoreScroll(saveScrollBeforeRender);
+  }
+}
 
 function toggleCat(bankId, category) {
   saveScrollBeforeRender = saveScroll();
@@ -1575,9 +1617,12 @@ function newMonth(bankId) {
   if (!bank) return;
   bank.selectedCategories = [];
   bank.stackedCategories = undefined;
+  bank.excludeFromLimit = undefined;
   bank.month = getCurrentMonth();
   bank.updatedAt = new Date().toISOString();
+  invalidateRecommendation();
   saveData(); render(); updateBadge();
+  showToast('Новый месяц — выбор сброшен');
 }
 
 function deleteBank(bankId) {
@@ -1830,6 +1875,30 @@ function handleDuplicate(action) {
   } else if (action === 'keep' && existing) {
     banks = banks.filter(b => b.coinData.provider.name !== pendingCoinData.provider.name);
     newBank = addBank(pendingCoinData, true, existing);
+    // Preserve additional settings for matching categories
+    if (existing.excludeFromLimit && existing.excludeFromLimit.length > 0) {
+      const newCats = new Set(newBank.coinData.cashback.entries.map(e => e.category));
+      newBank.excludeFromLimit = existing.excludeFromLimit.filter(c => newCats.has(c));
+      if (newBank.excludeFromLimit.length === 0) newBank.excludeFromLimit = undefined;
+    }
+    if (existing.stackedCategories && existing.stackedCategories.length > 0) {
+      const newCats = new Set(newBank.coinData.cashback.entries.map(e => e.category));
+      const dupGroups = getDuplicateGroups(newBank);
+      newBank.stackedCategories = existing.stackedCategories.filter(c => newCats.has(c) && dupGroups[c]);
+      if (newBank.stackedCategories.length === 0) newBank.stackedCategories = undefined;
+    }
+    if (existing.customExtras && Object.keys(existing.customExtras).length > 0) {
+      const newCats = new Set(newBank.coinData.cashback.entries.map(e => e.category));
+      const preserved = {};
+      for (const [cat, pct] of Object.entries(existing.customExtras)) {
+        if (newCats.has(cat)) preserved[cat] = pct;
+      }
+      if (Object.keys(preserved).length > 0) newBank.customExtras = preserved;
+    }
+    if (existing.customCategories && existing.customCategories.length > 0) {
+      newBank.customCategories = existing.customCategories;
+    }
+    saveData();
   }
   pendingCoinData = null;
   document.getElementById('duplicateModal').classList.add('hidden');
@@ -2292,7 +2361,14 @@ function applyRecommendations(bankId) {
   if (!bank) return;
   const rec = getRecommendation()[bank.id];
   if (!rec) { showToast('Нет рекомендаций'); return; }
+  // Start with recommendations, then add excluded-from-limit categories
   bank.selectedCategories = Array.from(rec);
+  const excluded = bank.excludeFromLimit || [];
+  for (const cat of excluded) {
+    if (!bank.selectedCategories.includes(cat)) {
+      bank.selectedCategories.push(cat);
+    }
+  }
   bank.updatedAt = new Date().toISOString();
   invalidateRecommendation();
   saveData(); render(); updateBadge();
