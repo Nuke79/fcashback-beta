@@ -1785,6 +1785,7 @@ function processImport(coinData) {
   closeImportModal();
   const newBank = addBank(coinData);
   expandedBankId = newBank.id;
+  invalidateRecommendation();
   switchToTab('banks');
   render();
 }
@@ -1820,6 +1821,7 @@ function handleDuplicate(action) {
     expandedBankId = newBank.id;
     switchToTab('banks');
   }
+  invalidateRecommendation();
   render();
 }
 
@@ -1843,7 +1845,7 @@ function importBackup() {
         const data = JSON.parse(ev.target.result);
         if (data.banks && Array.isArray(data.banks)) {
           for (const bank of data.banks) { const v = validateCoin(bank.coinData); if (!v.valid) { alert('Ошибка: ' + v.error); return; } }
-          banks = data.banks; saveData(); expandedBankId = null;
+          banks = data.banks; saveData(); expandedBankId = null; invalidateRecommendation();
           // Restore settings
           if (data.settings) {
             if (data.settings.reminderDay) setReminderDay(data.settings.reminderDay);
@@ -1898,7 +1900,7 @@ function toggleScreenshotExample() {
 // ─── Clear ──────────────────────────────────────────────────────────────────────
 function openClearModal() { document.getElementById('clearModal').classList.remove('hidden'); }
 function closeClearModal() { document.getElementById('clearModal').classList.add('hidden'); }
-function clearAll() { banks = []; expandedBankId = null; localStorage.removeItem(STORAGE_KEY); closeClearModal(); render(); clearBadge(); }
+function clearAll() { banks = []; expandedBankId = null; localStorage.removeItem(STORAGE_KEY); closeClearModal(); invalidateRecommendation(); render(); clearBadge(); }
 
 // ─── Close modals on overlay click ──────────────────────────────────────────────
 document.querySelectorAll('.overlay').forEach(overlay => {
