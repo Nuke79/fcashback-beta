@@ -224,7 +224,7 @@ body { min-height: 100vh; -webkit-font-smoothing: antialiased; padding-bottom: e
 .categories { padding: 0 16px 16px; border-top: 1px solid var(--border); margin-top: 10px; padding-top: 14px; }
 .categories-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
 .categories-month { font-size: 14px; font-weight: 500; }
-.categories-list { max-height: 65vh; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
+.categories-list { max-height: 65vh; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; padding-left: 4px; }
 
 /* ── Category Row (larger for touch) ── */
 .cat-row {
@@ -1075,31 +1075,9 @@ html:not(.light) .sel-stat-card-yellow {
   background: var(--border-hi);
 }
 
-/* ── Bank Card Left Accent ── */
-.bank-card::before {
-  content: '';
-  position: absolute;
-  left: 2px;
-  top: 2px;
-  bottom: 2px;
-  width: 3px;
-  background: var(--bank-color, var(--border));
-  opacity: 0;
-  transition: opacity 0.25s ease;
-  border-radius: calc(var(--radius) - 2px) 0 0 calc(var(--radius) - 2px);
-}
+/* ── Bank Card ── */
 .bank-card {
   position: relative;
-}
-.bank-card.empty-alert::before {
-  background: #eab308;
-  opacity: 0.4;
-}
-.bank-card.selected::before {
-  opacity: 0.6;
-}
-.bank-card.expanded::before {
-  opacity: 1;
 }
 
 /* ── Active Tab Glow ── */
@@ -1225,10 +1203,7 @@ textarea:focus:not(:focus-visible) {
    Styling Enhancements — 15 new blocks (appended)
    ════════════════════════════════════════════════════════════════ */
 
-/* ── 1. Bank Card Left Accent Bar (kept simple, no shimmer) ── */
-html.light .bank-card::before {
-  opacity: 0.7;
-}
+/* ── 1. Bank Card Left Accent Bar — removed ── */
 
 /* ── 2. High % Category Row Glow ── */
 .cat-row.high-pct {
@@ -1309,19 +1284,7 @@ select:focus-visible {
   animation-delay: 0.1s;
 }
 
-/* ── 8. Bank Card Expanded Top Line ── */
-.bank-card.expanded::after {
-  content: '';
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, var(--green), var(--yellow));
-  border-radius: var(--radius) var(--radius) 0 0;
-  z-index: 2;
-}
-html.light .bank-card.expanded::after {
-  opacity: 0.8;
-}
+/* ── 8. Bank Card Expanded Top Line — removed ── */
 
 /* ── 9. Toast Glass Effect ── */
 html:not(.light) .toast {
@@ -1570,12 +1533,10 @@ html.light .sel-empty svg {
 
 /* ── Accessibility: Disable Animations ── */
 @media (prefers-reduced-motion: reduce) {
-  .bank-card::before,
   .sel-empty,
   .sel-empty svg,
   .cat-limit-progress-fill.ok,
   .onboarding-dot.active,
-  .bank-card.expanded::after,
   .bank-card:not(.expanded) .card-icon:hover,
   .tab-btn.active::before,
   .header-title span,
