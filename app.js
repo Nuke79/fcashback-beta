@@ -1,5 +1,5 @@
 // ─── App Version & Update Check ──────────────────────────────────────────────
-const APP_VERSION = '2026.04.30-r2';
+const APP_VERSION = '2026.04.30-r3';
 const VERSION_URL = 'https://raw.githubusercontent.com/Nuke79/fcashback-beta/main/version.json';
 const SKIP_VERSION_KEY = 'cashback-beta-skip-version';
 
@@ -142,6 +142,10 @@ const CHANGELOG = {
     'Градиентная полоска-акцент на элементах выбранного списка',
     'Группировка кнопок действий с общим контейнером',
     'Тонкий фоновый паттерн с цветовыми акцентами',
+  ],
+  '2026.04.30-r3': [
+    'Взаимное скрытие кнопок «блок» и «не в лимите»',
+    'Проверка обновлений при запуске (GitHub)',
   ],
   '2026.04.30-r2': [
     '«Не рекомендовать»: скрыта кнопка блока при «не в лимите»',
@@ -1361,13 +1365,15 @@ function renderBanks(app) {
         }
         html += '</div>';
         html += '</div>';
-        // "Не в лимите" — tag + ∞ button (far right, fixed width so no layout shift)
+        // "Не в лимите" — tag + ∞ button (hide when blocked)
         html += '<div style="display:flex;align-items:center;gap:3px;flex-shrink:0;width:82px;justify-content:flex-end">';
-        if (isAlways) html += '<span style="font-size:10px;white-space:nowrap;color:var(--green);font-weight:500">не в лимите</span>';
-        html += '<button class="dop-excl-toggle' + (isAlways ? ' active' : '') + '" onclick="event.stopPropagation();toggleExcludeFromLimit(\'' + escCat + '\',\'' + bank.id + '\')" title="Не в лимите" style="opacity:' + (isAlways ? '1' : '0.45') + '">';
-        html += '<span style="font-size:14px;line-height:1;font-weight:700">∞</span>';
-        html += '</button>';
-        // Block category button (hide when "не в лимите" is active — illogical to block always-active category)
+        if (!blocked) {
+          if (isAlways) html += '<span style="font-size:10px;white-space:nowrap;color:var(--green);font-weight:500">не в лимите</span>';
+          html += '<button class="dop-excl-toggle' + (isAlways ? ' active' : '') + '" onclick="event.stopPropagation();toggleExcludeFromLimit(\'' + escCat + '\',\'' + bank.id + '\')" title="Не в лимите" style="opacity:' + (isAlways ? '1' : '0.45') + '">';
+          html += '<span style="font-size:14px;line-height:1;font-weight:700">∞</span>';
+          html += '</button>';
+        }
+        // Block category button (hide when "не в лимите" is active)
         if (!isAlways) {
           const isBlk = isCategoryBlocked(entry.category);
           html += '<button class="block-toggle' + (isBlk ? ' active' : '') + '" onclick="event.stopPropagation();toggleBlockCategory(\'' + escCat + '\')" title="' + (isBlk ? 'Включить рекомендации' : 'Не рекомендовать') + '" style="opacity:' + (isBlk ? '1' : '0.4') + '">';
