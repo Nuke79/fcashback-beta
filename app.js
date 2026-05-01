@@ -1,5 +1,5 @@
 // ─── App Version & Update Check ──────────────────────────────────────────────
-const APP_VERSION = '2026.04.30-r8';
+const APP_VERSION = '2026.04.30-r9';
 const VERSION_URL = 'https://raw.githubusercontent.com/Nuke79/fcashback-beta/main/version.json';
 const SKIP_VERSION_KEY = 'cashback-beta-skip-version';
 const INSTALLED_KEY = 'cashback-beta-installed-ver';
@@ -166,6 +166,9 @@ const CHANGELOG = {
     'Градиентная полоска-акцент на элементах выбранного списка',
     'Группировка кнопок действий с общим контейнером',
     'Тонкий фоновый паттерн с цветовыми акцентами',
+  ],
+  '2026.04.30-r9': [
+    'Все иконки на кнопках банка приведены к единому размеру (14px)',
   ],
   '2026.04.30-r8': [
     'Обновление теперь корректно определяется по версии Service Worker',
