@@ -1,7 +1,8 @@
 // ─── App Version & Update Check ──────────────────────────────────────────────
-const APP_VERSION = '2026.04.30-r5';
+const APP_VERSION = '2026.04.30-r6';
 const VERSION_URL = 'https://raw.githubusercontent.com/Nuke79/fcashback-beta/main/version.json';
 const SKIP_VERSION_KEY = 'cashback-beta-skip-version';
+let _updateModalShown = false;
 
 function checkForUpdate() {
   if (!navigator.onLine) return;
@@ -17,6 +18,8 @@ function checkForUpdate() {
 }
 
 function showUpdateModal(newVersion) {
+  if (_updateModalShown) return;
+  _updateModalShown = true;
   document.getElementById('updateNewVersion').textContent = newVersion;
   document.getElementById('updateCurrentVersion').textContent = APP_VERSION;
   document.getElementById('updateModal').classList.remove('hidden');
@@ -29,18 +32,24 @@ function closeUpdateModal() {
 async function doUpdate() {
   closeUpdateModal();
   try {
-    // Unregister old SW so it stops intercepting requests
+    const reg = await navigator.serviceWorker.getRegistration();
+    if (reg && reg.waiting) {
+      // New SW is ready — tell it to take over; controllerchange will reload
+      reg.waiting.postMessage('skipWaiting');
+      return;
+    }
+  } catch(e) {}
+  // Fallback: unregister + clear caches + reload
+  try {
     if ('serviceWorker' in navigator) {
       const reg = await navigator.serviceWorker.getRegistration();
       if (reg) await reg.unregister();
     }
-    // Clear all caches
     if ('caches' in window) {
       const keys = await caches.keys();
       await Promise.all(keys.map(k => caches.delete(k)));
     }
   } catch(e) {}
-  // Full reload — will re-register the new SW
   location.reload(true);
 }
 
@@ -150,6 +159,9 @@ const CHANGELOG = {
     'Градиентная полоска-акцент на элементах выбранного списка',
     'Группировка кнопок действий с общим контейнером',
     'Тонкий фоновый паттерн с цветовыми акцентами',
+  ],
+  '2026.04.30-r6': [
+    'Автообновление больше не происходит молча — появляется модалка с подтверждением',
   ],
   '2026.04.30-r5': [
     'Все иконки на кнопках банка приведены к единому размеру (14px)',
@@ -471,12 +483,21 @@ function initTheme() {
 // ─── Service Worker ──────────────────────────────────────────────────────────────
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('./sw.js').then(reg => {
-    // Auto-update when new version is available
-    // If there's a waiting update from previous session, activate it
+    // If new SW is already waiting — show update modal (don't auto-activate)
     if (reg.waiting) {
-      reg.waiting.postMessage('skipWaiting');
+      checkForUpdate();
     }
-    // Reload once when new SW takes control
+    // Detect when a new SW is installed and ready
+    reg.addEventListener('updatefound', () => {
+      const newSW = reg.installing;
+      newSW.addEventListener('statechange', () => {
+        if (newSW.state === 'installed' && navigator.serviceWorker.controller) {
+          // New SW ready but old one still controls — show update
+          checkForUpdate();
+        }
+      });
+    });
+    // Reload when new SW takes control (only after user confirms update)
     reg.addEventListener('controllerchange', () => {
       window.location.reload();
     });
@@ -502,8 +523,8 @@ if ('serviceWorker' in navigator) {
   });
 }
 
-// Check for app update on startup (after SW registration)
-setTimeout(checkForUpdate, 2000);
+// Check for app update on startup (backup for SW-based detection)
+setTimeout(checkForUpdate, 3000);
 
 // ─── Embedded COIN Data ─────────────────────────────────────────────────────────
 const EMBEDDED_COINS = [
