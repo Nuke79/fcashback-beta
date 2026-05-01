@@ -1,27 +1,34 @@
 // ─── App Version & Update Check ──────────────────────────────────────────────
-const APP_VERSION = '2026.04.30-r7';
+const APP_VERSION = '2026.04.30-r8';
 const VERSION_URL = 'https://raw.githubusercontent.com/Nuke79/fcashback-beta/main/version.json';
 const SKIP_VERSION_KEY = 'cashback-beta-skip-version';
+const INSTALLED_KEY = 'cashback-beta-installed-ver';
 let _updateModalShown = false;
+let _swVersion = null;
+let _remoteVersion = null;
 
 function checkForUpdate() {
-  if (!navigator.onLine) return;
+  if (!navigator.onLine || _updateModalShown) return;
   fetch(VERSION_URL, { cache: 'no-store' })
     .then(r => r.ok ? r.json() : null)
     .then(data => {
-      if (!data || !data.version || data.version === APP_VERSION) return;
+      if (!data || !data.version) return;
+      _remoteVersion = data.version;
       const skipped = localStorage.getItem(SKIP_VERSION_KEY);
       if (skipped === data.version) return;
-      showUpdateModal(data.version);
+      // Compare remote version with the version of the installed SW (not current APP_VERSION)
+      const installedVer = _swVersion || localStorage.getItem(INSTALLED_KEY);
+      if (!installedVer || data.version === installedVer) return;
+      showUpdateModal(data.version, installedVer);
     })
     .catch(() => {});
 }
 
-function showUpdateModal(newVersion) {
+function showUpdateModal(newVersion, installedVer) {
   if (_updateModalShown) return;
   _updateModalShown = true;
   document.getElementById('updateNewVersion').textContent = newVersion;
-  document.getElementById('updateCurrentVersion').textContent = APP_VERSION;
+  document.getElementById('updateCurrentVersion').textContent = installedVer || '?';
   document.getElementById('updateModal').classList.remove('hidden');
 }
 
@@ -34,7 +41,6 @@ async function doUpdate() {
   try {
     const reg = await navigator.serviceWorker.getRegistration();
     if (reg && reg.waiting) {
-      // New SW is ready — tell it to take over; controllerchange will reload
       reg.waiting.postMessage('skipWaiting');
       return;
     }
@@ -50,6 +56,7 @@ async function doUpdate() {
       await Promise.all(keys.map(k => caches.delete(k)));
     }
   } catch(e) {}
+  localStorage.removeItem(INSTALLED_KEY);
   location.reload(true);
 }
 
@@ -159,6 +166,9 @@ const CHANGELOG = {
     'Градиентная полоска-акцент на элементах выбранного списка',
     'Группировка кнопок действий с общим контейнером',
     'Тонкий фоновый паттерн с цветовыми акцентами',
+  ],
+  '2026.04.30-r8': [
+    'Обновление теперь корректно определяется по версии Service Worker',
   ],
   '2026.04.30-r7': [
     'SW больше не авто-активируется — обновление только по кнопке «Обновить»',
@@ -486,7 +496,11 @@ function initTheme() {
 // ─── Service Worker ──────────────────────────────────────────────────────────────
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('./sw.js').then(reg => {
-    // If new SW is already waiting — show update modal (don't auto-activate)
+    // Ask current SW for its version to detect stale install
+    if (navigator.serviceWorker.controller) {
+      navigator.serviceWorker.controller.postMessage('getVersion');
+    }
+    // If new SW is already waiting — we have an update
     if (reg.waiting) {
       checkForUpdate();
     }
@@ -495,27 +509,40 @@ if ('serviceWorker' in navigator) {
       const newSW = reg.installing;
       newSW.addEventListener('statechange', () => {
         if (newSW.state === 'installed' && navigator.serviceWorker.controller) {
-          // New SW ready but old one still controls — show update
           checkForUpdate();
         }
       });
     });
     // Reload when new SW takes control (only after user confirms update)
     reg.addEventListener('controllerchange', () => {
+      localStorage.removeItem(INSTALLED_KEY);
       window.location.reload();
     });
-    // Check changelog only when SW is stable (no pending update)
+    // Check changelog only when SW is stable
     if (!reg.installing && !reg.waiting) {
       checkChangelog();
     }
   }).catch(() => {});
 }
 
-// ─── SW message handler for changelog & version ─────────────────────────────────
+// ─── SW message handler for version & changelog ─────────────────────────────────
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.addEventListener('message', function handler(e) {
     if (e.data && e.data.version) {
       const ver = e.data.version;
+      // Store SW version for update comparison
+      _swVersion = ver;
+      localStorage.setItem(INSTALLED_KEY, ver);
+      // If we already got remote version, check now
+      if (_remoteVersion) {
+        const skipped = localStorage.getItem(SKIP_VERSION_KEY);
+        if (!skipped || skipped !== _remoteVersion) {
+          if (_remoteVersion !== ver && !_updateModalShown) {
+            showUpdateModal(_remoteVersion, ver);
+          }
+        }
+      }
+      // Changelog
       const seen = localStorage.getItem(CHANGELOG_KEY);
       if (seen !== ver && CHANGELOG[ver]) {
         openChangelogModal(ver);
@@ -526,8 +553,8 @@ if ('serviceWorker' in navigator) {
   });
 }
 
-// Check for app update on startup (backup for SW-based detection)
-setTimeout(checkForUpdate, 3000);
+// Check for app update on startup
+setTimeout(checkForUpdate, 2000);
 
 // ─── Embedded COIN Data ─────────────────────────────────────────────────────────
 const EMBEDDED_COINS = [
