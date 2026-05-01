@@ -1,6 +1,6 @@
 // ─── App Version & Update Check ──────────────────────────────────────────────
 const APP_VERSION = '2026.04.30-r2';
-const VERSION_URL = 'https://nuclear79.github.io/fcashback-beta/version.json';
+const VERSION_URL = 'https://raw.githubusercontent.com/Nuke79/fcashback-beta/main/version.json';
 const SKIP_VERSION_KEY = 'cashback-beta-skip-version';
 
 function checkForUpdate() {
