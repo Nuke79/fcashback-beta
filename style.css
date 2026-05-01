@@ -1079,14 +1079,14 @@ html:not(.light) .sel-stat-card-yellow {
 .bank-card::before {
   content: '';
   position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
+  left: 2px;
+  top: 2px;
+  bottom: 2px;
   width: 3px;
   background: var(--bank-color, var(--border));
   opacity: 0;
   transition: opacity 0.25s ease;
-  border-radius: var(--radius) 0 0 var(--radius);
+  border-radius: calc(var(--radius) - 2px) 0 0 calc(var(--radius) - 2px);
 }
 .bank-card {
   position: relative;
