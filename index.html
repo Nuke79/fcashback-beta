@@ -526,6 +526,27 @@
     </div>
   </div>
 
+  <!-- ── Update Available Modal ── -->
+  <div class="overlay hidden" id="updateModal">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">🔄 Обновление</div>
+        <div class="modal-desc">Доступна новая версия приложения</div>
+      </div>
+      <div class="modal-body" style="text-align:center;font-size:14px;color:var(--text-sec);line-height:1.6">
+        <div style="margin-bottom:8px">Текущая версия: <strong style="color:var(--text-muted)" id="updateCurrentVersion"></strong></div>
+        <div>Новая версия: <strong style="color:var(--green)" id="updateNewVersion"></strong></div>
+      </div>
+      <div class="modal-footer" style="display:flex;flex-direction:column;gap:8px">
+        <button class="btn btn-primary" onclick="doUpdate()" style="width:100%">Обновить</button>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-outline" onclick="skipThisVersion()" style="flex:1">Не обновлять</button>
+          <button class="btn btn-outline" onclick="closeUpdateModal()" style="flex:1">Позже</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
 <script src="app.js"></script>
 </body>
 </html>

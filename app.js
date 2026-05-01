@@ -1,3 +1,47 @@
+// ─── App Version & Update Check ──────────────────────────────────────────────
+const APP_VERSION = '2026.04.30-r2';
+const VERSION_URL = 'https://nuclear79.github.io/fcashback-beta/version.json';
+const SKIP_VERSION_KEY = 'cashback-beta-skip-version';
+
+function checkForUpdate() {
+  if (!navigator.onLine) return;
+  fetch(VERSION_URL, { cache: 'no-store' })
+    .then(r => r.ok ? r.json() : null)
+    .then(data => {
+      if (!data || !data.version || data.version === APP_VERSION) return;
+      const skipped = localStorage.getItem(SKIP_VERSION_KEY);
+      if (skipped === data.version) return;
+      showUpdateModal(data.version);
+    })
+    .catch(() => {});
+}
+
+function showUpdateModal(newVersion) {
+  document.getElementById('updateNewVersion').textContent = newVersion;
+  document.getElementById('updateCurrentVersion').textContent = APP_VERSION;
+  document.getElementById('updateModal').classList.remove('hidden');
+}
+
+function closeUpdateModal() {
+  document.getElementById('updateModal').classList.add('hidden');
+}
+
+function doUpdate() {
+  closeUpdateModal();
+  // Clear caches and reload
+  if ('caches' in window) {
+    caches.keys().then(names => Promise.all(names.map(n => caches.delete(n)))).then(() => location.reload(true));
+  } else {
+    location.reload(true);
+  }
+}
+
+function skipThisVersion() {
+  const newVer = document.getElementById('updateNewVersion').textContent;
+  localStorage.setItem(SKIP_VERSION_KEY, newVer);
+  closeUpdateModal();
+}
+
 // ─── Changelog (declared early — used by easter egg & SW handler) ─────────────────
 const CHANGELOG_KEY = 'cashback-beta-changelog-seen';
 const CHANGELOG = {
@@ -439,6 +483,9 @@ if ('serviceWorker' in navigator) {
     }
   });
 }
+
+// Check for app update on startup (after SW registration)
+setTimeout(checkForUpdate, 2000);
 
 // ─── Embedded COIN Data ─────────────────────────────────────────────────────────
 const EMBEDDED_COINS = [

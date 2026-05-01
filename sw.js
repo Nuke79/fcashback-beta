@@ -28,6 +28,12 @@ self.addEventListener('message', (e) => {
 self.addEventListener('fetch', (e) => {
   const url = new URL(e.request.url);
 
+  // version.json: always network, never cache
+  if (url.pathname.endsWith('version.json')) {
+    e.respondWith(fetch(e.request));
+    return;
+  }
+
   // HTML file: always try network first to get updates
   if (url.pathname.endsWith('.html') || url.pathname === '/' || url.pathname.endsWith('/')) {
     e.respondWith(
