@@ -1,27 +1,18 @@
 // ─── App Version & Update Check ──────────────────────────────────────────────
-const APP_VERSION = '2026.04.30-r9';
-const VERSION_URL = 'https://raw.githubusercontent.com/Nuke79/fcashback-beta/main/version.json';
-const SKIP_VERSION_KEY = 'cashback-beta-skip-version';
+const APP_VERSION = '2026.04.30-r10';
 const INSTALLED_KEY = 'cashback-beta-installed-ver';
+const SKIP_VERSION_KEY = 'cashback-beta-skip-version';
 let _updateModalShown = false;
 let _swVersion = null;
-let _remoteVersion = null;
 
-function checkForUpdate() {
-  if (!navigator.onLine || _updateModalShown) return;
-  fetch(VERSION_URL, { cache: 'no-store' })
-    .then(r => r.ok ? r.json() : null)
-    .then(data => {
-      if (!data || !data.version) return;
-      _remoteVersion = data.version;
-      const skipped = localStorage.getItem(SKIP_VERSION_KEY);
-      if (skipped === data.version) return;
-      // Compare remote version with the version of the installed SW (not current APP_VERSION)
-      const installedVer = _swVersion || localStorage.getItem(INSTALLED_KEY);
-      if (!installedVer || data.version === installedVer) return;
-      showUpdateModal(data.version, installedVer);
-    })
-    .catch(() => {});
+// Compare active SW version (cached/old) with current APP_VERSION (fresh from network)
+function checkSwVersion() {
+  if (_updateModalShown) return;
+  const installedVer = _swVersion || localStorage.getItem(INSTALLED_KEY);
+  if (!installedVer || installedVer === APP_VERSION) return;
+  const skipped = localStorage.getItem(SKIP_VERSION_KEY);
+  if (skipped === APP_VERSION) return;
+  showUpdateModal(APP_VERSION, installedVer);
 }
 
 function showUpdateModal(newVersion, installedVer) {
@@ -61,8 +52,7 @@ async function doUpdate() {
 }
 
 function skipThisVersion() {
-  const newVer = document.getElementById('updateNewVersion').textContent;
-  localStorage.setItem(SKIP_VERSION_KEY, newVer);
+  localStorage.setItem(SKIP_VERSION_KEY, APP_VERSION);
   closeUpdateModal();
 }
 
@@ -166,6 +156,9 @@ const CHANGELOG = {
     'Градиентная полоска-акцент на элементах выбранного списка',
     'Группировка кнопок действий с общим контейнером',
     'Тонкий фоновый паттерн с цветовыми акцентами',
+  ],
+  '2026.04.30-r10': [
+    'Обновление: убран version.json — сравнение идёт по версии SW (кэш) vs APP_VERSION (сеть)',
   ],
   '2026.04.30-r9': [
     'Все иконки на кнопках банка приведены к единому размеру (14px)',
@@ -499,24 +492,24 @@ function initTheme() {
 // ─── Service Worker ──────────────────────────────────────────────────────────────
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('./sw.js').then(reg => {
-    // Ask current SW for its version to detect stale install
+    // Ask current SW for its cached version
     if (navigator.serviceWorker.controller) {
       navigator.serviceWorker.controller.postMessage('getVersion');
     }
-    // If new SW is already waiting — we have an update
+    // If new SW already waiting — check if update needed
     if (reg.waiting) {
-      checkForUpdate();
+      checkSwVersion();
     }
-    // Detect when a new SW is installed and ready
+    // Detect when new SW installs and becomes ready
     reg.addEventListener('updatefound', () => {
       const newSW = reg.installing;
       newSW.addEventListener('statechange', () => {
         if (newSW.state === 'installed' && navigator.serviceWorker.controller) {
-          checkForUpdate();
+          checkSwVersion();
         }
       });
     });
-    // Reload when new SW takes control (only after user confirms update)
+    // Reload when new SW takes control (only after user confirms)
     reg.addEventListener('controllerchange', () => {
       localStorage.removeItem(INSTALLED_KEY);
       window.location.reload();
@@ -528,23 +521,15 @@ if ('serviceWorker' in navigator) {
   }).catch(() => {});
 }
 
-// ─── SW message handler for version & changelog ─────────────────────────────────
+// ─── SW message handler ─────────────────────────────────────────────────────────
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.addEventListener('message', function handler(e) {
     if (e.data && e.data.version) {
       const ver = e.data.version;
-      // Store SW version for update comparison
       _swVersion = ver;
       localStorage.setItem(INSTALLED_KEY, ver);
-      // If we already got remote version, check now
-      if (_remoteVersion) {
-        const skipped = localStorage.getItem(SKIP_VERSION_KEY);
-        if (!skipped || skipped !== _remoteVersion) {
-          if (_remoteVersion !== ver && !_updateModalShown) {
-            showUpdateModal(_remoteVersion, ver);
-          }
-        }
-      }
+      // Now we know the SW version — check if update is needed
+      checkSwVersion();
       // Changelog
       const seen = localStorage.getItem(CHANGELOG_KEY);
       if (seen !== ver && CHANGELOG[ver]) {
@@ -555,9 +540,6 @@ if ('serviceWorker' in navigator) {
     }
   });
 }
-
-// Check for app update on startup
-setTimeout(checkForUpdate, 2000);
 
 // ─── Embedded COIN Data ─────────────────────────────────────────────────────────
 const EMBEDDED_COINS = [
