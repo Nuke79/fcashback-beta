@@ -1,5 +1,5 @@
 // ─── App Version & Update Check ──────────────────────────────────────────────
-const APP_VERSION = '2026.04.30-r3';
+const APP_VERSION = '2026.04.30-r4';
 const VERSION_URL = 'https://raw.githubusercontent.com/Nuke79/fcashback-beta/main/version.json';
 const SKIP_VERSION_KEY = 'cashback-beta-skip-version';
 
@@ -26,14 +26,22 @@ function closeUpdateModal() {
   document.getElementById('updateModal').classList.add('hidden');
 }
 
-function doUpdate() {
+async function doUpdate() {
   closeUpdateModal();
-  // Clear caches and reload
-  if ('caches' in window) {
-    caches.keys().then(names => Promise.all(names.map(n => caches.delete(n)))).then(() => location.reload(true));
-  } else {
-    location.reload(true);
-  }
+  try {
+    // Unregister old SW so it stops intercepting requests
+    if ('serviceWorker' in navigator) {
+      const reg = await navigator.serviceWorker.getRegistration();
+      if (reg) await reg.unregister();
+    }
+    // Clear all caches
+    if ('caches' in window) {
+      const keys = await caches.keys();
+      await Promise.all(keys.map(k => caches.delete(k)));
+    }
+  } catch(e) {}
+  // Full reload — will re-register the new SW
+  location.reload(true);
 }
 
 function skipThisVersion() {
@@ -142,6 +150,9 @@ const CHANGELOG = {
     'Градиентная полоска-акцент на элементах выбранного списка',
     'Группировка кнопок действий с общим контейнером',
     'Тонкий фоновый паттерн с цветовыми акцентами',
+  ],
+  '2026.04.30-r4': [
+    'Исправлено автообновление: теперь снимает старый Service Worker перед перезагрузкой',
   ],
   '2026.04.30-r3': [
     'Взаимное скрытие кнопок «блок» и «не в лимите»',
