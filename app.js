@@ -1,5 +1,5 @@
 // ─── App Version & Update Check ──────────────────────────────────────────────
-const APP_VERSION = '2026.04.30-r6';
+const APP_VERSION = '2026.04.30-r7';
 const VERSION_URL = 'https://raw.githubusercontent.com/Nuke79/fcashback-beta/main/version.json';
 const SKIP_VERSION_KEY = 'cashback-beta-skip-version';
 let _updateModalShown = false;
@@ -159,6 +159,9 @@ const CHANGELOG = {
     'Градиентная полоска-акцент на элементах выбранного списка',
     'Группировка кнопок действий с общим контейнером',
     'Тонкий фоновый паттерн с цветовыми акцентами',
+  ],
+  '2026.04.30-r7': [
+    'SW больше не авто-активируется — обновление только по кнопке «Обновить»',
   ],
   '2026.04.30-r6': [
     'Автообновление больше не происходит молча — появляется модалка с подтверждением',

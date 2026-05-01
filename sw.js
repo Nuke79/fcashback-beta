@@ -1,19 +1,20 @@
-const CACHE_NAME = 'cashback-beta-2026.04.30-r6';
+const CACHE_NAME = 'cashback-beta-2026.04.30-r7';
 const ASSETS = ['./index.html', './style.css', './app.js', './manifest.json', './icon-192.png'];
 
-// Install: cache all assets
+// Install: cache all assets — but DON'T auto-activate (wait for page command)
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS)));
-  self.skipWaiting();
+  // No self.skipWaiting() — stay in 'waiting' state
 });
 
-// Activate: remove old caches, claim clients immediately
+// Activate: remove old caches — but DON'T auto-claim (page reloads via controllerchange)
 self.addEventListener('activate', (e) => {
   e.waitUntil(
     caches.keys().then(keys => Promise.all(
       keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))
-    )).then(() => self.clients.claim())
+    ))
   );
+  // No self.clients.claim() — page will reload via controllerchange listener
 });
 
 // Listen for messages from main page
