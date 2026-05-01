@@ -1,4 +1,5 @@
-const CACHE_NAME = 'cashback-beta-2026.04.30-r10';
+const APP_VERSION = '2026.05.01-r11';
+const CACHE_NAME = 'cashback-beta-' + APP_VERSION;
 const ASSETS = ['./index.html', './style.css', './app.js', './manifest.json', './icon-192.png'];
 
 // Install: cache all assets — but DON'T auto-activate (wait for page command)
@@ -21,7 +22,7 @@ self.addEventListener('activate', (e) => {
 self.addEventListener('message', (e) => {
   if (e.data === 'skipWaiting') self.skipWaiting();
   if (e.data === 'getVersion') {
-    e.source.postMessage({ version: CACHE_NAME.replace('cashback-', '') });
+    e.source.postMessage({ version: APP_VERSION });
   }
 });
 

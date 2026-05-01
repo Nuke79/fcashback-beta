@@ -1,5 +1,5 @@
 // ─── App Version & Update Check ──────────────────────────────────────────────
-const APP_VERSION = '2026.04.30-r10';
+const APP_VERSION = '2026.05.01-r11';
 const INSTALLED_KEY = 'cashback-beta-installed-ver';
 const SKIP_VERSION_KEY = 'cashback-beta-skip-version';
 let _updateModalShown = false;
@@ -157,6 +157,10 @@ const CHANGELOG = {
     'Группировка кнопок действий с общим контейнером',
     'Тонкий фоновый паттерн с цветовыми акцентами',
   ],
+  '2026.05.01-r11': [
+    'Исправлено формат версии: SW и APP теперь совпадают точно',
+    'Пасхалка показывает актуальную версию приложения',
+  ],
   '2026.04.30-r10': [
     'Обновление: убран version.json — сравнение идёт по версии SW (кэш) vs APP_VERSION (сеть)',
   ],
@@ -201,7 +205,7 @@ function easterEggTap() {
   if (_tapCount >= 7) {
     _tapCount = 0;
     const seen = localStorage.getItem(CHANGELOG_KEY);
-    showToast('⚙ V' + (seen || '?'));
+    showToast('⚙ V' + APP_VERSION);
   }
 }
 
