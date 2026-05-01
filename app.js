@@ -1,5 +1,5 @@
 // ─── App Version & Update Check ──────────────────────────────────────────────
-const APP_VERSION = '2026.04.30-r4';
+const APP_VERSION = '2026.04.30-r5';
 const VERSION_URL = 'https://raw.githubusercontent.com/Nuke79/fcashback-beta/main/version.json';
 const SKIP_VERSION_KEY = 'cashback-beta-skip-version';
 
@@ -150,6 +150,9 @@ const CHANGELOG = {
     'Градиентная полоска-акцент на элементах выбранного списка',
     'Группировка кнопок действий с общим контейнером',
     'Тонкий фоновый паттерн с цветовыми акцентами',
+  ],
+  '2026.04.30-r5': [
+    'Все иконки на кнопках банка приведены к единому размеру (14px)',
   ],
   '2026.04.30-r4': [
     'Исправлено автообновление: теперь снимает старый Service Worker перед перезагрузкой',
@@ -1316,11 +1319,11 @@ function renderBanks(app) {
       html += '<div class="categories">';
       html += '<div class="categories-header"><span class="categories-month">' + formatMonth(bank.month) + '</span>';
       html += '<div style="display:flex;flex-wrap:wrap;gap:6px">';
-      html += '<button class="btn btn-sm btn-primary" onclick="applyRecommendations(\'' + bank.id + '\')" style="gap:4px;min-height:36px;padding:6px 10px;font-size:12px"><span style="display:inline-flex;align-items:center;width:14px;height:14px;flex-shrink:0">' + ICONS.bolt + '</span>Рекомендации</button>';
-      html += '<button class="btn btn-sm btn-outline" onclick="copyPrevMonth(\'' + bank.id + '\')" style="gap:4px;min-height:36px;padding:6px 12px;font-size:12px"><span style="display:inline-flex;align-items:center;width:14px;height:14px;flex-shrink:0">' + ICONS.clipboard + '</span>Прошлый</button>';
-      html += '<button class="btn btn-sm btn-outline" onclick="openDopModal(\'' + bank.id + '\')" style="gap:4px;min-height:36px;padding:6px 12px;font-size:12px"><span style="display:inline-flex;align-items:center;width:14px;height:14px;flex-shrink:0">' + ICONS.plus + '</span>Доп.</button>';
-      html += '<button class="btn btn-sm btn-outline" onclick="newMonth(\'' + bank.id + '\')" style="gap:5px;min-height:36px;padding:6px 12px;font-size:12px"><span style="display:inline-flex;align-items:center;width:12px;height:12px;flex-shrink:0">' + ICONS.refresh + '</span>Месяц</button>';
-      html += '<button class="btn btn-sm btn-outline" onclick="event.stopPropagation();deselectAllCategories(\'' + bank.id + '\')" style="gap:4px;min-height:36px;padding:6px 10px;font-size:12px" title="Снять все"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>Отменить</button>';
+      html += '<button class="btn btn-sm btn-primary" onclick="applyRecommendations(\'' + bank.id + '\')" style="gap:4px;min-height:36px;padding:6px 10px;font-size:12px"><svg viewBox="0 0 24 24" fill="currentColor" stroke="none" style="width:14px;height:14px;flex-shrink:0"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>Рекомендации</button>';
+      html += '<button class="btn btn-sm btn-outline" onclick="copyPrevMonth(\'' + bank.id + '\')" style="gap:4px;min-height:36px;padding:6px 12px;font-size:12px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;flex-shrink:0"><path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>Прошлый</button>';
+      html += '<button class="btn btn-sm btn-outline" onclick="openDopModal(\'' + bank.id + '\')" style="gap:4px;min-height:36px;padding:6px 12px;font-size:12px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;flex-shrink:0"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Доп.</button>';
+      html += '<button class="btn btn-sm btn-outline" onclick="newMonth(\'' + bank.id + '\')" style="gap:4px;min-height:36px;padding:6px 12px;font-size:12px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;flex-shrink:0"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>Месяц</button>';
+      html += '<button class="btn btn-sm btn-outline" onclick="event.stopPropagation();deselectAllCategories(\'' + bank.id + '\')" style="gap:4px;min-height:36px;padding:6px 10px;font-size:12px" title="Снять все"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;flex-shrink:0"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>Отменить</button>';
       html += '</div></div>';
       // Limit bar
       const limitPct = maxCat > 0 ? Math.min(100, Math.round(selCount / maxCat * 100)) : 0;
