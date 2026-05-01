@@ -1254,10 +1254,10 @@ function renderBanks(app) {
       html += '<div class="categories">';
       html += '<div class="categories-header"><span class="categories-month">' + formatMonth(bank.month) + '</span>';
       html += '<div style="display:flex;flex-wrap:wrap;gap:6px">';
-      html += '<button class="btn btn-sm btn-primary" onclick="applyRecommendations(\'' + bank.id + '\')" style="gap:4px;min-height:36px;padding:6px 10px;font-size:12px"><span style="width:14px;height:14px">' + ICONS.bolt + '</span>Рекомендации</button>';
-      html += '<button class="btn btn-sm btn-outline" onclick="copyPrevMonth(\'' + bank.id + '\')" style="gap:4px;min-height:36px;padding:6px 10px;font-size:12px"><span style="width:14px;height:14px">' + ICONS.clipboard + '</span>Прошлый</button>';
-      html += '<button class="btn btn-sm btn-outline" onclick="openDopModal(\'' + bank.id + '\')" style="gap:4px;min-height:36px;padding:6px 10px;font-size:12px"><span style="width:14px;height:14px">' + ICONS.plus + '</span>Доп.</button>';
-      html += '<button class="btn btn-sm btn-outline" onclick="newMonth(\'' + bank.id + '\')" style="gap:4px;min-height:36px;padding:6px 10px;font-size:12px"><span style="width:14px;height:14px">' + ICONS.refresh + '</span>Месяц</button>';
+      html += '<button class="btn btn-sm btn-primary" onclick="applyRecommendations(\'' + bank.id + '\')" style="gap:4px;min-height:36px;padding:6px 10px;font-size:12px"><span style="display:inline-flex;align-items:center;width:14px;height:14px;flex-shrink:0">' + ICONS.bolt + '</span>Рекомендации</button>';
+      html += '<button class="btn btn-sm btn-outline" onclick="copyPrevMonth(\'' + bank.id + '\')" style="gap:4px;min-height:36px;padding:6px 10px;font-size:12px"><span style="display:inline-flex;align-items:center;width:14px;height:14px;flex-shrink:0">' + ICONS.clipboard + '</span>Прошлый</button>';
+      html += '<button class="btn btn-sm btn-outline" onclick="openDopModal(\'' + bank.id + '\')" style="gap:4px;min-height:36px;padding:6px 10px;font-size:12px"><span style="display:inline-flex;align-items:center;width:14px;height:14px;flex-shrink:0">' + ICONS.plus + '</span>Доп.</button>';
+      html += '<button class="btn btn-sm btn-outline" onclick="newMonth(\'' + bank.id + '\')" style="gap:4px;min-height:36px;padding:6px 10px;font-size:12px"><span style="display:inline-flex;align-items:center;width:14px;height:14px;flex-shrink:0">' + ICONS.refresh + '</span>Месяц</button>';
       html += '<button class="btn btn-sm btn-outline" onclick="event.stopPropagation();deselectAllCategories(\'' + bank.id + '\')" style="gap:4px;min-height:36px;padding:6px 10px;font-size:12px" title="Снять все"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>Отменить</button>';
       html += '</div></div>';
       // Limit bar
